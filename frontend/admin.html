@@ -538,6 +538,18 @@
   </div>
 
   <script>
+    // --- API Endpoint Base Configuration ---
+    const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.port === '8000')
+      ? ''
+      : 'https://supernova-hackathon.onrender.com';
+
+    function apiUrl(path) {
+      if (!path) return '';
+      if (path.startsWith('http://') || path.startsWith('https://')) return path;
+      const cleanPath = path.startsWith('/') ? path : '/' + path;
+      return API_BASE ? `${API_BASE}${cleanPath}` : cleanPath;
+    }
+
     let adminToken = localStorage.getItem('sn26_admin_token') || null;
     let allRegistrations = [];
     let currentActiveTeamId = null;
@@ -573,7 +585,7 @@
       if (errBox) errBox.classList.add('hidden');
 
       try {
-        const res = await fetch('/api/admin/login', {
+        const res = await fetch(apiUrl('/api/admin/login'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: user, password: pass })
@@ -596,7 +608,7 @@
 
     function adminLogout() {
       if (adminToken) {
-        fetch('/api/admin/logout', {
+        fetch(apiUrl('/api/admin/logout'), {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + adminToken }
         }).catch(() => {});
@@ -614,7 +626,7 @@
 
       try {
         // 1. Fetch Summary Metrics
-        const dashRes = await fetch('/api/admin/dashboard', {
+        const dashRes = await fetch(apiUrl('/api/admin/dashboard'), {
           headers: { 'Authorization': 'Bearer ' + adminToken }
         });
         if (dashRes.status === 401) {
@@ -640,7 +652,7 @@
         }
 
         // 2. Fetch Live Registration Records
-        const listRes = await fetch('/api/admin/registrations', {
+        const listRes = await fetch(apiUrl('/api/admin/registrations'), {
           headers: { 'Authorization': 'Bearer ' + adminToken }
         });
         if (!listRes.ok) throw new Error('Registrations API error: ' + listRes.status);
@@ -829,7 +841,7 @@
           track: trackF
         });
 
-        const res = await fetch(`/api/admin/export/csv?${queryParams.toString()}`, {
+        const res = await fetch(apiUrl(`/api/admin/export/csv?${queryParams.toString()}`), {
           method: 'GET',
           headers: {
             'Authorization': 'Bearer ' + adminToken
@@ -909,7 +921,7 @@
       const drawer = document.getElementById('teamInspectionDrawer');
 
       try {
-        const res = await fetch(`/api/admin/registrations/${teamId}`, {
+        const res = await fetch(apiUrl(`/api/admin/registrations/${teamId}`), {
           headers: { 'Authorization': 'Bearer ' + adminToken }
         });
         if (!res.ok) return;
@@ -977,8 +989,8 @@
         const drawerProofNewTab = document.getElementById('drawerProofNewTabLink');
         if (team.has_proof) {
           const authParam = adminToken ? `?token=${encodeURIComponent(adminToken)}&t=${Date.now()}` : `?t=${Date.now()}`;
-          const proofUrl = `/api/admin/registrations/${encodeURIComponent(team.id)}/proof${authParam}`;
-          const fallbackUrl = `/api/ticket/${encodeURIComponent(team.id)}/proof?t=${Date.now()}`;
+          const proofUrl = apiUrl(`/api/admin/registrations/${encodeURIComponent(team.id)}/proof${authParam}`);
+          const fallbackUrl = apiUrl(`/api/ticket/${encodeURIComponent(team.id)}/proof?t=${Date.now()}`);
 
           if (proofImg) {
             proofImg.onerror = function() {
@@ -1100,7 +1112,7 @@
     async function actionRecordPayment() {
       if (!currentActiveTeamId || !adminToken) return;
       try {
-        const res = await fetch(`/api/admin/registrations/${currentActiveTeamId}/verify-payment`, {
+        const res = await fetch(apiUrl(`/api/admin/registrations/${currentActiveTeamId}/verify-payment`), {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
           body: JSON.stringify({})
@@ -1117,7 +1129,7 @@
     async function actionRejectPayment() {
       if (!currentActiveTeamId || !adminToken) return;
       try {
-        const res = await fetch(`/api/admin/registrations/${currentActiveTeamId}/reject-payment`, {
+        const res = await fetch(apiUrl(`/api/admin/registrations/${currentActiveTeamId}/reject-payment`), {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
           body: JSON.stringify({})
@@ -1137,7 +1149,7 @@
     async function actionApprovePass() {
       if (!currentActiveTeamId || !adminToken) return;
       try {
-        const res = await fetch(`/api/admin/registrations/${currentActiveTeamId}/approve`, {
+        const res = await fetch(apiUrl(`/api/admin/registrations/${currentActiveTeamId}/approve`), {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
           body: JSON.stringify({})
@@ -1173,7 +1185,7 @@
         return;
       }
       try {
-        const res = await fetch(`/api/admin/registrations/${currentActiveTeamId}/reject`, {
+        const res = await fetch(apiUrl(`/api/admin/registrations/${currentActiveTeamId}/reject`), {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
           body: JSON.stringify({ reason: reason })
@@ -1200,7 +1212,7 @@
         btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">sync</span><span>Dispatching...</span>';
       }
       try {
-        const res = await fetch(`/api/admin/registrations/${currentActiveTeamId}/resend-email`, {
+        const res = await fetch(apiUrl(`/api/admin/registrations/${currentActiveTeamId}/resend-email`), {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
           body: JSON.stringify({})
@@ -1232,7 +1244,7 @@
         btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">sync</span><span>Generating...</span>';
       }
       try {
-        const res = await fetch(`/api/admin/registrations/${currentActiveTeamId}/pdf`, {
+        const res = await fetch(apiUrl(`/api/admin/registrations/${currentActiveTeamId}/pdf`), {
           headers: { 'Authorization': 'Bearer ' + adminToken }
         });
         if (!res.ok) {
@@ -1283,7 +1295,7 @@
       }
 
       try {
-        const res = await fetch(`/api/admin/registrations/${encodeURIComponent(currentActiveTeamId)}/reject-payment`, {
+        const res = await fetch(apiUrl(`/api/admin/registrations/${encodeURIComponent(currentActiveTeamId)}/reject-payment`), {
           method: 'POST',
           headers: {
             'Authorization': 'Bearer ' + adminToken,
@@ -1318,7 +1330,7 @@
       
       let directUrl = url;
       if (!directUrl && targetId) {
-        directUrl = `/api/admin/registrations/${encodeURIComponent(targetId)}/proof${authParam}`;
+        directUrl = apiUrl(`/api/admin/registrations/${encodeURIComponent(targetId)}/proof${authParam}`);
       } else if (directUrl) {
         if (!directUrl.includes('token=') && adminToken) {
           directUrl += (directUrl.includes('?') ? '&' : '?') + `token=${encodeURIComponent(adminToken)}&t=${Date.now()}`;
@@ -1328,7 +1340,7 @@
       }
       if (!directUrl) return;
 
-      const fallbackUrl = targetId ? `/api/ticket/${encodeURIComponent(targetId)}/proof?t=${Date.now()}` : directUrl;
+      const fallbackUrl = targetId ? apiUrl(`/api/ticket/${encodeURIComponent(targetId)}/proof?t=${Date.now()}`) : directUrl;
 
       if (img) {
         img.onerror = function() {
@@ -1355,14 +1367,14 @@
     let selectedNewQrBase64 = null;
 
     function openQrConfigModal() {
-      fetch('/api/organizer-qr')
+      fetch(apiUrl('/api/organizer-qr'))
         .then(r => r.json())
         .then(cfg => {
           const img = document.getElementById('modalCurrentQrImg');
           const ben = document.getElementById('modalBeneficiaryText');
           const upi = document.getElementById('modalUpiText');
           const qrUrl = cfg.image_url || cfg.qr_url;
-          if (img && qrUrl) img.src = qrUrl + '?t=' + Date.now();
+          if (img && qrUrl) img.src = apiUrl(qrUrl) + '?t=' + Date.now();
           const benName = cfg.beneficiary_name || cfg.beneficiary;
           if (ben && benName) ben.innerText = benName;
           if (upi && cfg.upi_id) upi.innerText = cfg.upi_id;
@@ -1435,7 +1447,7 @@
       btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">sync</span><span>Uploading...</span>';
 
       try {
-        const res = await fetch('/api/admin/organizer-qr', {
+        const res = await fetch(apiUrl('/api/admin/organizer-qr'), {
           method: 'POST',
           headers: {
             'Authorization': 'Bearer ' + adminToken,
@@ -1451,7 +1463,7 @@
             alertEl.classList.remove('hidden');
           }
           const img = document.getElementById('modalCurrentQrImg');
-          if (img) img.src = '/api/organizer-qr/image?t=' + Date.now();
+          if (img) img.src = apiUrl('/api/organizer-qr/image?t=' + Date.now());
           setTimeout(() => {
             closeQrConfigModal();
           }, 1500);

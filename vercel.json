@@ -1,6 +1,7 @@
 {
   "cleanUrls": true,
   "rewrites": [
+    { "source": "/api/:match*", "destination": "https://supernova-hackathon.onrender.com/api/:match*" },
     { "source": "/", "destination": "/frontend/index.html" },
     { "source": "/admin", "destination": "/frontend/admin.html" },
     { "source": "/assets/:match*", "destination": "/frontend/assets/:match*" },

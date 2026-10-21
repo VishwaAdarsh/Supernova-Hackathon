@@ -3231,6 +3231,18 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
 
 <!-- INTEGRATED CLIENT-SIDE SCRIPTS -->
 <script>
+    // --- API Endpoint Base Configuration ---
+    const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.port === '8000')
+      ? ''
+      : 'https://supernova-hackathon.onrender.com';
+
+    function apiUrl(path) {
+      if (!path) return '';
+      if (path.startsWith('http://') || path.startsWith('https://')) return path;
+      const cleanPath = path.startsWith('/') ? path : '/' + path;
+      return API_BASE ? `${API_BASE}${cleanPath}` : cleanPath;
+    }
+
     let selectedTrack = 'web';
     let currentTeamSize = 2; // Default Duo
     let isAudioActive = true;
@@ -3426,7 +3438,7 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
     // --- Real-time Availability Sync ---
     async function fetchAvailability() {
       try {
-        const res = await fetch('/api/registrations');
+        const res = await fetch(apiUrl('/api/registrations'));
         if (!res.ok) throw new Error('Availability API error: ' + res.status);
         const data = await res.json();
         latestAvailability = data;
@@ -4077,7 +4089,7 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
       if (loadEl) loadEl.classList.remove('hidden');
 
       try {
-        const response = await fetch('/api/registrations', {
+        const response = await fetch(apiUrl('/api/registrations'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -4273,7 +4285,7 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
       if (submitBtnText) submitBtnText.innerText = "UPLOADING & VERIFYING PROOF...";
 
       try {
-        const res = await fetch(`/api/registrations/${encodeURIComponent(regId)}/payment-proof`, {
+        const res = await fetch(apiUrl(`/api/registrations/${encodeURIComponent(regId)}/payment-proof`), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -4328,7 +4340,7 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
     }
 
     function refreshOrganizerQrDisplay() {
-      fetch('/api/organizer-qr')
+      fetch(apiUrl('/api/organizer-qr'))
         .then(r => r.json())
         .then(cfg => {
           const qrImg = document.getElementById('organizerPaymentQrImg') || document.getElementById('paymentQrImg');
@@ -4341,7 +4353,7 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
           if (cfg && isConfigured && qrUrl) {
             if (qrImg) {
               const separator = qrUrl.includes('?') ? '&' : '?';
-              qrImg.src = qrUrl + separator + 't=' + Date.now();
+              qrImg.src = apiUrl(qrUrl) + separator + 't=' + Date.now();
               qrImg.classList.remove('hidden');
             }
             if (missingPlaceholder) missingPlaceholder.classList.add('hidden');
@@ -4485,7 +4497,7 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
       if (refreshIcon) refreshIcon.classList.add('animate-spin');
 
       try {
-        const res = await fetch('/api/ticket/' + encodeURIComponent(regId));
+        const res = await fetch(apiUrl('/api/ticket/' + encodeURIComponent(regId)));
         if (res.ok) {
           const data = await res.json();
           currentTicketData = data;
@@ -4656,7 +4668,7 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
       // 1. Try downloading crisp vector PDF directly from server
       if (currentTicketData && currentTicketData.id) {
         try {
-          const res = await fetch(`/api/ticket/${encodeURIComponent(currentTicketData.id)}/pdf`);
+          const res = await fetch(apiUrl(`/api/ticket/${encodeURIComponent(currentTicketData.id)}/pdf`));
           if (res.ok) {
             const blob = await res.blob();
             const url = window.URL.createObjectURL(blob);
@@ -4726,7 +4738,7 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
       }
 
       try {
-        const res = await fetch('/api/ticket/' + encodeURIComponent(ref));
+        const res = await fetch(apiUrl('/api/ticket/' + encodeURIComponent(ref)));
         if (res.ok) {
           const data = await res.json();
           currentTicketData = data;
@@ -4778,7 +4790,7 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
 
       emailLookupTimer = setTimeout(async () => {
         try {
-          const res = await fetch('/api/ticket/' + encodeURIComponent(cleanEmail));
+          const res = await fetch(apiUrl('/api/ticket/' + encodeURIComponent(cleanEmail)));
           if (res.ok) {
             const data = await res.json();
             if (noticeBox && noticeName) {
@@ -5596,7 +5608,7 @@ SECURITY TELEMETRY: SHA-256 [VERIFIED] // SUPERNOVA REST V2.6
         const urlParams = new URLSearchParams(window.location.search);
         const refId = urlParams.get('ref') || urlParams.get('ticket') || urlParams.get('id');
         if (refId) {
-          fetch('/api/ticket/' + encodeURIComponent(refId))
+          fetch(apiUrl('/api/ticket/' + encodeURIComponent(refId)))
             .then(r => r.json())
             .then(data => {
               if (data && data.id) {

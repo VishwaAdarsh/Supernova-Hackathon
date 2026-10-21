@@ -505,6 +505,8 @@ class Server(BaseHTTPRequestHandler):
                 self.send_header('Content-Disposition', f'attachment; filename="SUPERNOVA_PASS_{team["id"]}.pdf"')
                 self.send_header('Content-Length', str(len(pdf_bytes)))
                 self.send_header('Cache-Control', 'private, no-cache')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Expose-Headers', 'Content-Disposition')
                 self.end_headers()
                 self.wfile.write(pdf_bytes)
                 return
@@ -903,6 +905,8 @@ class Server(BaseHTTPRequestHandler):
                 self.send_header('Content-Disposition', f'attachment; filename="SUPERNOVA_PASS_{team_dict["id"]}.pdf"')
                 self.send_header('Content-Length', str(len(pdf_bytes)))
                 self.send_header('Cache-Control', 'private, no-cache')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Expose-Headers', 'Content-Disposition')
                 self.end_headers()
                 self.wfile.write(pdf_bytes)
                 return
