@@ -672,7 +672,7 @@
 </head>
 <body class="bg-[#09070A] font-body-md text-on-surface antialiased selection:bg-[#014BAA] selection:text-white min-h-screen relative ">
 <!-- AUDIO ASSET EMBED -->
-<audio id="ambientAudio" src="horror-ambient.mp3" loop preload="none"></audio>
+<audio id="ambientAudio" src="horror-ambient.mp3" loop preload="auto" autoplay></audio>
 
 <!-- BINARY SKULL ATMOSPHERIC CANVAS BACKGROUND -->
 <canvas id="binary-skull-bg" aria-hidden="true"></canvas>
@@ -710,9 +710,9 @@ TOLANI COLLEGE · DATA SCIENCE &amp; IT
 <a class="font-label-code text-label-code uppercase tracking-wider text-on-surface-variant hover:text-primary transition-colors" data-path="faq" href="#faq">FAQ</a>
 </nav>
 <div class="flex items-center gap-1.5 sm:gap-space-md shrink-0">
-<button class="btn-cyber-interactive hidden sm:flex items-center gap-space-xs px-space-sm py-space-xs rounded bg-surface-container-low border border-[#014BAA] hover:border-primary font-label-telemetry text-label-telemetry text-on-surface-variant hover:text-on-surface transition-all" id="btnAudioToggle" onclick="toggleAudio()" type="button" aria-label="Toggle ambient soundtrack">
-<span class="material-symbols-outlined text-sm text-primary" id="audioIcon">volume_off</span>
-<span id="audioLabel" class="">AUDIO: MUTE [OFF]</span>
+<button class="btn-cyber-interactive hidden sm:flex items-center gap-space-xs px-space-sm py-space-xs rounded bg-surface-container-low border border-[#014BAA] hover:border-primary font-label-telemetry text-label-telemetry text-primary border-primary transition-all" id="btnAudioToggle" onclick="toggleAudio()" type="button" aria-label="Toggle ambient soundtrack">
+<span class="material-symbols-outlined text-sm text-primary" id="audioIcon">volume_up</span>
+<span id="audioLabel" class="">AUDIO: SYNTH [ON]</span>
 </button>
 <a class="btn-cyber-interactive inline-flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:px-space-md sm:py-space-sm rounded bg-[#014BAA] text-white font-label-code text-[11px] sm:text-label-code font-bold uppercase tracking-wider border border-primary hover:bg-primary hover:text-on-primary transition-all shadow-[0_0_18px_rgba(1, 75, 170,0.45)] active:scale-95 whitespace-nowrap" data-path="register-terminal" href="#register">
 <span class="">REGISTER<span class="hidden xs:inline sm:inline">&nbsp;NOW</span></span>
@@ -734,9 +734,9 @@ TOLANI COLLEGE · DATA SCIENCE &amp; IT
 <a class="block font-label-code text-sm uppercase tracking-wider text-on-surface-variant hover:text-primary transition-colors py-1 border-b border-[#014BAA]/40" onclick="toggleMobileNav()" href="#venue">06 // VENUE</a>
 <a class="block font-label-code text-sm uppercase tracking-wider text-on-surface-variant hover:text-primary transition-colors py-1 border-b border-[#014BAA]/40" onclick="toggleMobileNav()" href="#faq">07 // FAQ</a>
 <div class="pt-2 flex items-center justify-between">
-<button class="flex items-center gap-space-xs px-space-sm py-1.5 rounded bg-[#170B10] border border-[#014BAA] text-xs font-label-telemetry text-on-surface-variant" onclick="toggleAudio()" type="button">
-<span class="material-symbols-outlined text-sm text-primary">volume_off</span>
-<span>Toggle Audio</span>
+<button class="flex items-center gap-space-xs px-space-sm py-1.5 rounded bg-[#170B10] border border-[#014BAA] text-xs font-label-telemetry text-primary border-primary" onclick="toggleAudio()" type="button">
+<span class="material-symbols-outlined text-sm text-primary" id="audioIconMobile">volume_up</span>
+<span id="audioLabelMobile">AUDIO: ON</span>
 </button>
 <span class="font-label-telemetry text-[10px] text-primary">TOLANI COLLEGE</span>
 </div>
@@ -3234,7 +3234,7 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
 <script>
     let selectedTrack = 'web';
     let currentTeamSize = 2; // Default Duo
-    let isAudioActive = false;
+    let isAudioActive = true;
     let latestAvailability = null;
     let currentTicketData = null;
 
@@ -3290,6 +3290,7 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
 
     // Start countdown ticker immediately upon script load
     initCountdownTicker();
+      try { startDefaultAudio(); } catch (e) { console.warn('startDefaultAudio init:', e); }
 
     // --- Mobile Hamburger Navigation Drawer ---
     function toggleMobileNav() {
@@ -3353,31 +3354,73 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
       closeTermsModal();
     }
 
-    // --- Audio Control Integration ---
-    function toggleAudio() {
-      const audio = document.getElementById('ambientAudio');
+    // --- Audio Control Integration (Default ON) ---
+    function updateAudioUI(isOn) {
       const icon = document.getElementById('audioIcon');
       const label = document.getElementById('audioLabel');
       const btn = document.getElementById('btnAudioToggle');
+      const iconMobile = document.getElementById('audioIconMobile');
+      const labelMobile = document.getElementById('audioLabelMobile');
 
+      if (isOn) {
+        if (icon) icon.innerText = 'volume_up';
+        if (label) label.innerText = 'AUDIO: SYNTH [ON]';
+        if (btn) btn.classList.add('border-primary', 'text-primary');
+        if (iconMobile) iconMobile.innerText = 'volume_up';
+        if (labelMobile) labelMobile.innerText = 'AUDIO: ON';
+      } else {
+        if (icon) icon.innerText = 'volume_off';
+        if (label) label.innerText = 'AUDIO: MUTE [OFF]';
+        if (btn) btn.classList.remove('border-primary', 'text-primary');
+        if (iconMobile) iconMobile.innerText = 'volume_off';
+        if (labelMobile) labelMobile.innerText = 'AUDIO: MUTE';
+      }
+    }
+
+    function startDefaultAudio() {
+      const audio = document.getElementById('ambientAudio');
+      if (!audio || !isAudioActive) return;
+
+      audio.volume = 0.60;
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          updateAudioUI(true);
+        }).catch(() => {
+          // If browser policy requires user interaction before unmuted sound,
+          // unlock seamlessly on the very first gesture (click, touch, scroll, key)
+          updateAudioUI(true);
+          const unlockAudio = () => {
+            if (isAudioActive && audio.paused) {
+              audio.play().then(() => updateAudioUI(true)).catch(() => {});
+            }
+            ['click', 'touchstart', 'keydown', 'scroll', 'pointerdown'].forEach(evt => {
+              window.removeEventListener(evt, unlockAudio);
+            });
+          };
+          ['click', 'touchstart', 'keydown', 'scroll', 'pointerdown'].forEach(evt => {
+            window.addEventListener(evt, unlockAudio, { passive: true, once: true });
+          });
+        });
+      }
+    }
+
+    function toggleAudio() {
+      const audio = document.getElementById('ambientAudio');
       if (!audio) return;
 
       if (audio.paused) {
+        isAudioActive = true;
         audio.play().then(() => {
-          isAudioActive = true;
-          icon.innerText = 'volume_up';
-          label.innerText = 'AUDIO: SYNTH [ON]';
-          btn.classList.add('border-primary', 'text-primary');
+          updateAudioUI(true);
         }).catch((err) => {
           console.warn('Audio playback prevented by browser policy:', err);
-          label.innerText = 'AUDIO: TAP RETRY';
+          updateAudioUI(false);
         });
       } else {
-        audio.pause();
         isAudioActive = false;
-        icon.innerText = 'volume_off';
-        label.innerText = 'AUDIO: MUTE [OFF]';
-        btn.classList.remove('border-primary', 'text-primary');
+        audio.pause();
+        updateAudioUI(false);
       }
     }
 
