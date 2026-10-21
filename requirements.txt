@@ -1,0 +1,14 @@
+# SUPERNOVA Quantum Hack 2026 Dependencies
+# Core Python version requirement: Python 3.10+
+
+# Vector PDF ticket pass generation & Canvas rendering
+reportlab>=4.0.0
+
+# Dynamic QR code generation for ticket passes & organizer payments
+qrcode[pil]>=7.4.2
+
+# Image processing for uploads, proof inspection & ReportLab reader
+Pillow>=10.0.0
+
+# PostgreSQL database driver for Supabase / Render persistent storage
+psycopg2-binary>=2.9.0
