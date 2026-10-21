@@ -4,23 +4,43 @@
 <script src="html2canvas.min.js"></script>
 <script src="jspdf.umd.min.js"></script>
 <style>
-/* MOBILE-ONLY RESPONSIVE LAYOUT LOCK - Desktop remains 100% natural and unconstrained */
-@media (max-width: 768px) {
-  html, body {
-    overflow-x: hidden !important;
-    width: 100% !important;
-    max-width: 100vw !important;
+/* MOBILE & TOUCH RESPONSIVE SCROLL ARCHITECTURE */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+body {
+  overflow-x: clip;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior-y: auto;
+  overscroll-behavior-x: none;
+}
+main {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: clip;
+  position: relative;
+}
+@supports not (overflow-x: clip) {
+  body {
+    overflow-x: hidden;
   }
   main {
-    overflow-x: hidden !important;
-    max-width: 100vw !important;
+    overflow-x: hidden;
   }
-  .mobile-glow-contain {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    pointer-events: none;
-    z-index: -10;
+}
+@media (max-width: 640px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  select,
+  textarea {
+    font-size: 16px !important;
   }
 }
 
@@ -107,7 +127,8 @@
         color: #eae0e3;
       }
       body {
-        overscroll-behavior: none;
+        overscroll-behavior-y: auto;
+        overscroll-behavior-x: none;
       }
     }
     ::-webkit-scrollbar {
@@ -227,11 +248,10 @@
       transform: translateY(-50%) translateX(0);
     }
 
-    /* On mobile, show unobtrusively so touch users know NOVA is an interactive assistant */
+    /* On mobile, hide the permanent tooltip bubble so it doesn't obstruct form inputs and content */
     @media (max-width: 768px) {
-      .nova-tooltip-box:not(.chat-open) {
-        opacity: 0.95;
-        transform: translateY(-50%) translateX(0);
+      .nova-tooltip-box {
+        display: none !important;
       }
     }
 
@@ -725,7 +745,7 @@ TOLANI COLLEGE · DATA SCIENCE &amp; IT
 </div>
 </div>
 <!-- Mobile Navigation Drawer -->
-<div id="mobileNavDrawer" class="hidden lg:hidden border-t border-[#014BAA] bg-[#09070A]/95 backdrop-blur-2xl px-6 py-4 space-y-3">
+<div id="mobileNavDrawer" class="hidden lg:hidden border-t border-[#014BAA] bg-[#09070A]/95 backdrop-blur-2xl px-5 sm:px-6 py-4 space-y-2.5 max-h-[calc(100dvh-5rem)] overflow-y-auto">
 <a class="block font-label-code text-sm uppercase tracking-wider text-on-surface-variant hover:text-primary transition-colors py-1 border-b border-[#014BAA]/40" onclick="toggleMobileNav()" href="#about">01 // ABOUT</a>
 <a class="block font-label-code text-sm uppercase tracking-wider text-on-surface-variant hover:text-primary transition-colors py-1 border-b border-[#014BAA]/40" onclick="toggleMobileNav()" href="#tracks">02 // TRACKS</a>
 <a class="block font-label-code text-sm uppercase tracking-wider text-on-surface-variant hover:text-primary transition-colors py-1 border-b border-[#014BAA]/40" onclick="toggleMobileNav()" href="#schedule">03 // SCHEDULE</a>
@@ -744,7 +764,7 @@ TOLANI COLLEGE · DATA SCIENCE &amp; IT
 </header>
 <main class="w-full pt-20 bg-transparent relative z-10 min-h-screen">
 <!-- AMBIENT ATMOSPHERIC CRIMSON ILLUMINATIONS -->
-<div class="mobile-glow-contain md:contents">
+<div class="absolute inset-0 overflow-hidden pointer-events-none -z-10 w-full max-w-full">
 <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1100px] h-[650px] bg-gradient-to-b from-[#014BAA]/15 via-[#014BAA]/10 to-transparent blur-[160px] pointer-events-none -z-10"></div>
 <div class="absolute top-[900px] -left-64 w-[700px] h-[700px] bg-gradient-to-tr from-[#014BAA]/25 to-transparent blur-[180px] pointer-events-none -z-10"></div>
 <div class="absolute top-[2200px] -right-64 w-[750px] h-[750px] bg-gradient-to-bl from-[#014BAA]/15 via-[#014BAA]/20 to-transparent blur-[190px] pointer-events-none -z-10"></div>
@@ -1226,7 +1246,7 @@ TOLANI COLLEGE · DATA SCIENCE &amp; IT
               VERIFIED ALLOCATIONS
             </h2>
 </div>
-<div class="text-right">
+<div class="text-left md:text-right">
 <span class="font-label-telemetry text-[11px] text-on-surface-variant uppercase block">CONFIRMED CUMULATIVE REWARD</span>
 <span class="font-headline-md text-2xl text-[#014BAA] font-bold">TOTAL PRIZE POOL: ₹6,000</span>
 </div>
@@ -2848,7 +2868,7 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
 
 
 <!-- FLOATING SOCIAL MEDIA TOOLBAR (BOTTOM-LEFT VIEWPORT) -->
-<aside id="floatingSocialToolbar" class="fixed bottom-4 left-3 sm:bottom-6 sm:left-6 z-40 flex flex-col items-center gap-2.5 sm:gap-3 select-none no-print" aria-label="Social Media Links">
+<aside id="floatingSocialToolbar" class="fixed bottom-3 left-2.5 sm:bottom-6 sm:left-6 z-40 flex flex-col items-center gap-2 sm:gap-3 select-none no-print" aria-label="Social Media Links">
   <!-- Instagram Link -->
   <a href="https://www.instagram.com/supernova_hackathon/?utm_source=ig_web_button_share_sheet"
      target="_blank"
@@ -2858,8 +2878,8 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
      title="Instagram: @supernova_hackathon">
     <span class="social-hud-bracket social-hud-tl"></span>
     <span class="social-hud-bracket social-hud-br"></span>
-    <img src="assets/instagram-icon.png" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='instagram-icon.png';}else{this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23F8F3F0%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Crect x=%222%22 y=%222%22 width=%2220%22 height=%2220%22 rx=%225%22 ry=%225%22/%3E%3Cpath d=%22M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z%22/%3E%3Cline x1=%2217.5%22 y1=%226.5%22 x2=%2217.51%22 y2=%226.5%22/%3E%3C/svg%3E';}" alt="Instagram" class="w-9 h-9 sm:w-11 sm:h-11 object-contain rounded-xl transition-transform duration-300 group-hover:scale-105">
-    <span class="social-hud-tooltip pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg bg-[#040814]/95 border border-[#E1306C]/50 text-[#F8F3F0] font-mono text-[11px] whitespace-nowrap shadow-[0_0_15px_rgba(225,48,108,0.35)] backdrop-blur-md opacity-0 -translate-x-2 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 group-focus-visible:opacity-100 group-focus-visible:translate-x-0 z-50">
+    <img src="assets/instagram-icon.png" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='instagram-icon.png';}else{this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23F8F3F0%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Crect x=%222%22 y=%222%22 width=%2220%22 height=%2220%22 rx=%225%22 ry=%225%22/%3E%3Cpath d=%22M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z%22/%3E%3Cline x1=%2217.5%22 y1=%226.5%22 x2=%2217.51%22 y2=%226.5%22/%3E%3C/svg%3E';}" alt="Instagram" class="w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 object-contain rounded-xl transition-transform duration-300 group-hover:scale-105">
+    <span class="social-hud-tooltip hidden sm:block pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg bg-[#040814]/95 border border-[#E1306C]/50 text-[#F8F3F0] font-mono text-[11px] whitespace-nowrap shadow-[0_0_15px_rgba(225,48,108,0.35)] backdrop-blur-md opacity-0 -translate-x-2 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 group-focus-visible:opacity-100 group-focus-visible:translate-x-0 z-50">
       <span class="text-[#E1306C] font-bold">Instagram</span> // @supernova_hackathon
     </span>
   </a>
@@ -2873,17 +2893,17 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
      title="WhatsApp: Join Community">
     <span class="social-hud-bracket social-hud-tl"></span>
     <span class="social-hud-bracket social-hud-br"></span>
-    <img src="assets/whatsapp-icon.png" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='whatsapp-icon.png';}else{this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2325D366%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z%22/%3E%3C/svg%3E';}" alt="WhatsApp" class="w-9 h-9 sm:w-11 sm:h-11 object-contain rounded-xl transition-transform duration-300 group-hover:scale-105">
-    <span class="social-hud-tooltip pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg bg-[#040814]/95 border border-[#25D366]/50 text-[#F8F3F0] font-mono text-[11px] whitespace-nowrap shadow-[0_0_15px_rgba(37,211,102,0.35)] backdrop-blur-md opacity-0 -translate-x-2 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 group-focus-visible:opacity-100 group-focus-visible:translate-x-0 z-50">
+    <img src="assets/whatsapp-icon.png" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='whatsapp-icon.png';}else{this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2325D366%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z%22/%3E%3C/svg%3E';}" alt="WhatsApp" class="w-7 h-7 xs:w-8 xs:h-8 sm:w-11 sm:h-11 object-contain rounded-xl transition-transform duration-300 group-hover:scale-105">
+    <span class="social-hud-tooltip hidden sm:block pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg bg-[#040814]/95 border border-[#25D366]/50 text-[#F8F3F0] font-mono text-[11px] whitespace-nowrap shadow-[0_0_15px_rgba(37,211,102,0.35)] backdrop-blur-md opacity-0 -translate-x-2 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 group-focus-visible:opacity-100 group-focus-visible:translate-x-0 z-50">
       <span class="text-[#25D366] font-bold">WhatsApp</span> // Join Community
     </span>
   </a>
 </aside>
 
 <!-- FLOATING NOVA EVENT ASSISTANT CHATBOT -->
-<div id="novaAvatarContainer" class="fixed bottom-4 right-3 sm:bottom-6 sm:right-6 z-40 select-none">
+<div id="novaAvatarContainer" class="fixed bottom-3 right-2.5 sm:bottom-6 sm:right-6 z-40 select-none">
   <!-- Tooltip: "NOVA AI / Ask me anything" -->
-  <div id="novaAvatarTooltip" class="nova-tooltip-box absolute right-full mr-3 top-1/2 -translate-y-1/2 z-40 pointer-events-none">
+  <div id="novaAvatarTooltip" class="nova-tooltip-box hidden sm:block absolute right-full mr-3 top-1/2 -translate-y-1/2 z-40 pointer-events-none">
     <div class="relative px-3 py-2 rounded-lg bg-[#0e070c]/95 border border-[#014BAA]/35 shadow-[0_4px_24px_rgba(0,0,0,0.85),0_0_15px_rgba(1,75,170,0.25)] backdrop-blur-md whitespace-nowrap">
       <div class="flex items-center gap-1.5">
         <span class="w-2 h-2 rounded-full bg-[#014BAA] shadow-[0_0_8px_#014BAA]"></span>
@@ -2905,18 +2925,18 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
       <img src="assets/nova-avatar.png" 
            onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='nova-avatar.png';}" 
            alt="NOVA AI Assistant" 
-           class="nova-avatar-img h-[92px] sm:h-[125px] md:h-[135px] w-auto max-w-none object-contain"
+           class="nova-avatar-img h-[68px] xs:h-[76px] sm:h-[110px] md:h-[135px] w-auto max-w-none object-contain"
            loading="eager"
            decoding="async"
            draggable="false">
       <!-- Ground Soft Shadow & Holographic Glow Disc under feet -->
-      <div class="nova-avatar-shadow w-12 sm:w-16 h-2 rounded-[50%] bg-[#014BAA]/25 blur-[3px] -mt-1 transition-colors duration-300"></div>
+      <div class="nova-avatar-shadow w-10 xs:w-12 sm:w-16 h-1.5 sm:h-2 rounded-[50%] bg-[#014BAA]/25 blur-[3px] -mt-1 transition-colors duration-300"></div>
     </div>
   </button>
 </div>
 
 <!-- NOVA CHAT PANEL -->
-<div id="novaChatPanel" class="hidden fixed bottom-4 right-3 left-3 sm:left-auto sm:right-32 sm:bottom-6 md:right-36 w-auto sm:w-[370px] max-w-[calc(100vw-24px)] h-[520px] max-h-[calc(100vh-100px)] z-50 rounded-xl bg-[#170B10]/95 border border-[#014BAA] shadow-[0_10px_50px_rgba(0,0,0,0.85),0_0_30px_rgba(1,75,170,0.2)] backdrop-blur-xl flex flex-col overflow-hidden">
+<div id="novaChatPanel" class="hidden fixed bottom-3 right-2.5 left-2.5 sm:left-auto sm:right-32 sm:bottom-6 md:right-36 w-auto sm:w-[370px] max-w-[calc(100vw-20px)] h-[480px] sm:h-[520px] max-h-[calc(100dvh-80px)] z-50 rounded-xl bg-[#170B10]/95 border border-[#014BAA] shadow-[0_10px_50px_rgba(0,0,0,0.85),0_0_30px_rgba(1,75,170,0.2)] backdrop-blur-xl flex flex-col overflow-hidden">
   <!-- Chat Header -->
   <div class="p-space-sm px-space-md bg-[#231118] border-b border-[#014BAA] flex items-center justify-between">
     <div class="flex items-center gap-space-xs">
