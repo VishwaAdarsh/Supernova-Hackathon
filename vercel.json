@@ -1,0 +1,9 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/", "destination": "/frontend/index.html" },
+    { "source": "/admin", "destination": "/frontend/admin.html" },
+    { "source": "/assets/:match*", "destination": "/frontend/assets/:match*" },
+    { "source": "/:match*", "destination": "/frontend/:match*" }
+  ]
+}
