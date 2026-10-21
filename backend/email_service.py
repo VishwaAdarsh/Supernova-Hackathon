@@ -793,7 +793,8 @@ def send_email_notification(notification_type, team, members, extra=None, force_
                 data=json.dumps(payload).encode('utf-8'),
                 headers={
                     "api-key": brevo_key,
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
                 },
                 method="POST"
             )
