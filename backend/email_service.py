@@ -61,7 +61,10 @@ def get_smtp_config():
     use_tls = use_tls_raw in ('true', '1', 'yes')
     use_ssl = use_ssl_raw in ('true', '1', 'yes')
 
-    is_configured = bool(host and from_email and (password or not username))
+    resend_api_key = os.environ.get('RESEND_API_KEY', '').strip()
+    brevo_api_key = os.environ.get('BREVO_API_KEY', '').strip()
+
+    is_configured = bool(resend_api_key or brevo_api_key or (host and from_email and (password or not username)))
 
     return {
         'host': host,
@@ -72,6 +75,8 @@ def get_smtp_config():
         'from_name': from_name,
         'use_tls': use_tls,
         'use_ssl': use_ssl,
+        'resend_api_key': resend_api_key,
+        'brevo_api_key': brevo_api_key,
         'is_configured': is_configured
     }
 
@@ -700,12 +705,92 @@ def send_email_notification(notification_type, team, members, extra=None, force_
             filename=f"SUPERNOVA_PASS_{team_id}.pdf"
         )
 
-    # SMTP Transmission or Honest NOT_CONFIGURED state
+    # Email Delivery: HTTP API (Resend / Brevo) or SMTP Transmission
     status = 'NOT_CONFIGURED'
     err_msg = None
 
-    if not cfg['is_configured']:
-        err_msg = 'SMTP environment variables not configured. Dispatch logged locally.'
+    resend_key = cfg.get('resend_api_key')
+    brevo_key = cfg.get('brevo_api_key')
+
+    if resend_key:
+        try:
+            import urllib.request
+            import base64
+            import json
+
+            resend_from = from_email
+            if '@gmail.com' in from_email.lower() and not os.environ.get('RESEND_FROM_EMAIL'):
+                resend_from = os.environ.get('RESEND_FROM_EMAIL', 'onboarding@resend.dev')
+
+            sender_header = f"{from_name} <{resend_from}>" if from_name else resend_from
+            payload = {
+                "from": sender_header,
+                "to": [recipient_email],
+                "subject": subject,
+                "text": text_body,
+                "html": html_body
+            }
+            if pdf_bytes:
+                payload["attachments"] = [{
+                    "filename": f"SUPERNOVA_PASS_{team_id}.pdf",
+                    "content": base64.b64encode(pdf_bytes).decode('ascii')
+                }]
+
+            req = urllib.request.Request(
+                "https://api.resend.com/emails",
+                data=json.dumps(payload).encode('utf-8'),
+                headers={
+                    "Authorization": f"Bearer {resend_key}",
+                    "Content-Type": "application/json"
+                },
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                resp_data = json.loads(resp.read().decode('utf-8'))
+                status = 'SENT'
+                err_msg = None
+        except Exception as e:
+            status = 'FAILED'
+            err_msg = f"Resend API error: {str(e)}"
+
+    elif brevo_key:
+        try:
+            import urllib.request
+            import base64
+            import json
+
+            payload = {
+                "sender": {"name": from_name, "email": from_email},
+                "to": [{"email": recipient_email}],
+                "subject": subject,
+                "textContent": text_body,
+                "htmlContent": html_body
+            }
+            if pdf_bytes:
+                payload["attachment"] = [{
+                    "name": f"SUPERNOVA_PASS_{team_id}.pdf",
+                    "content": base64.b64encode(pdf_bytes).decode('ascii')
+                }]
+
+            req = urllib.request.Request(
+                "https://api.brevo.com/v3/smtp/email",
+                data=json.dumps(payload).encode('utf-8'),
+                headers={
+                    "api-key": brevo_key,
+                    "Content-Type": "application/json"
+                },
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                resp_data = json.loads(resp.read().decode('utf-8'))
+                status = 'SENT'
+                err_msg = None
+        except Exception as e:
+            status = 'FAILED'
+            err_msg = f"Brevo API error: {str(e)}"
+
+    elif not cfg['is_configured']:
+        err_msg = 'Email environment variables not configured. Dispatch logged locally.'
     elif cfg['use_tls'] and cfg['use_ssl']:
         status = 'CONFIG_ERROR'
         err_msg = 'Incompatible configuration: both SMTP_USE_TLS and SMTP_USE_SSL cannot be enabled simultaneously.'
@@ -732,7 +817,15 @@ def send_email_notification(notification_type, team, members, extra=None, force_
             err_msg = f"SMTP protocol error: {str(e)}"
         except Exception as e:
             status = 'FAILED'
-            err_msg = f"Connection error: {str(e)}"
+            err_str = str(e)
+            if '101' in err_str or 'Network is unreachable' in err_str:
+                err_msg = (
+                    "Render Free Tier blocks outbound SMTP ports (25, 465, 587). "
+                    "To send emails from Render Free tier, set RESEND_API_KEY or BREVO_API_KEY in Render environment variables (HTTP port 443), "
+                    "or upgrade Render instance to Starter ($7) to unblock port 587."
+                )
+            else:
+                err_msg = f"Connection error: {err_str}"
         finally:
             if server is not None:
                 try:

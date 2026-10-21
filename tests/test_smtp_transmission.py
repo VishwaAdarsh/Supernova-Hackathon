@@ -80,7 +80,7 @@ class TestSMTPTransmission(unittest.TestCase):
         mock_server.send_message.assert_called_once()
 
         sent_msg = mock_server.send_message.call_args[0][0]
-        self.assertIn('Your SUPERNOVA registration has been successfully confirmed!', sent_msg['Subject'])
+        self.assertIn('Entry Pass for Team Byte Force', sent_msg['Subject'])
         self.assertEqual(sent_msg['To'], 'kavya.rao@tolani.edu')
         self.assertIn('SUPERNOVA 2026', sent_msg['From'])
 

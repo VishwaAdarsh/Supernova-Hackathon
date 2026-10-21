@@ -13,7 +13,7 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 # Import all public symbols from backend server
-from server import *
+from backend.server import *
 
 if __name__ == "__main__":
     run_server()
