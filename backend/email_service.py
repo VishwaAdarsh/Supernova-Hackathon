@@ -749,6 +749,22 @@ def send_email_notification(notification_type, team, members, extra=None, force_
                 resp_data = json.loads(resp.read().decode('utf-8'))
                 status = 'SENT'
                 err_msg = None
+        except urllib.error.HTTPError as e:
+            status = 'FAILED'
+            try:
+                raw_err = e.read().decode('utf-8')
+                parsed_err = json.loads(raw_err)
+                msg_val = parsed_err.get('message') or parsed_err.get('error') or raw_err
+                if e.code == 403 and 'only send testing emails to your own email' in str(msg_val).lower():
+                    err_msg = (
+                        "Resend Sandbox Restriction (403): Testing emails can only be sent to your own Resend account email. "
+                        "To send to participants, either add and verify a custom domain at resend.com/domains, or use Brevo "
+                        "(set BREVO_API_KEY in Render) to send to any email address without a custom domain."
+                    )
+                else:
+                    err_msg = f"Resend API error (HTTP {e.code}): {msg_val}"
+            except Exception:
+                err_msg = f"Resend API error: HTTP Error {e.code}: {e.reason}"
         except Exception as e:
             status = 'FAILED'
             err_msg = f"Resend API error: {str(e)}"
@@ -785,6 +801,15 @@ def send_email_notification(notification_type, team, members, extra=None, force_
                 resp_data = json.loads(resp.read().decode('utf-8'))
                 status = 'SENT'
                 err_msg = None
+        except urllib.error.HTTPError as e:
+            status = 'FAILED'
+            try:
+                raw_err = e.read().decode('utf-8')
+                parsed_err = json.loads(raw_err)
+                msg_val = parsed_err.get('message') or parsed_err.get('error') or raw_err
+                err_msg = f"Brevo API error (HTTP {e.code}): {msg_val}"
+            except Exception:
+                err_msg = f"Brevo API error: HTTP Error {e.code}: {e.reason}"
         except Exception as e:
             status = 'FAILED'
             err_msg = f"Brevo API error: {str(e)}"
