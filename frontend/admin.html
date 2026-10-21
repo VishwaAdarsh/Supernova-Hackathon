@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SUPERNOVA 2026 // Admin Telemetry Command Center</title>
+  <link rel="icon" type="image/png" href="assets/nova-avatar.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: '#2563FF',
+            'primary-dark': '#153EBD',
+            surface: '#09070A',
+            'surface-variant': '#170B10',
+            border: '#153EBD',
+          },
+          fontFamily: {
+            headline: ['Syne', 'sans-serif'],
+            body: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['Space Mono', 'monospace'],
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      background-color: #09070A;
+      color: #eae0e3;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .font-mono { font-family: 'Space Mono', monospace; }
+    .font-headline { font-family: 'Syne', sans-serif; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #09070A; }
+    ::-webkit-scrollbar-thumb { background: #153EBD; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2563FF; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#09070A] text-[#eae0e3]">
+
+  <!-- Top Admin Navigation Header -->
+  <header class="w-full bg-[#11090D] border-b border-[#153EBD] py-3 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30">
+    <div class="flex items-center gap-3">
+      <a href="/" class="flex items-center gap-2 group" title="Return to Supernova Website">
+        <div class="w-8 h-8 rounded bg-[#170B10] border border-[#153EBD] flex items-center justify-center p-1 group-hover:border-[#2563FF] transition-colors">
+          <img src="tolani-logo.jpg" alt="Tolani College" class="w-full h-full object-contain">
+        </div>
+        <div>
+          <span class="font-headline text-sm font-bold tracking-wider text-white uppercase group-hover:text-[#2563FF] transition-colors">SUPERNOVA 2026</span>
+          <span class="block font-mono text-[9px] text-[#2563FF] uppercase tracking-widest">// ADMIN COMMAND CLUSTER //</span>
+        </div>
+      </a>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="/" class="text-xs font-mono text-gray-400 hover:text-white transition-colors flex items-center gap-1 border border-[#153EBD] px-2.5 py-1 rounded bg-[#170B10]">
+        <span class="material-symbols-outlined text-sm">home</span>
+        <span class="hidden sm:inline">Public Site</span>
+      </a>
+      <div id="authHeaderControls" class="hidden flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="text-xs font-mono text-emerald-400 font-semibold uppercase" id="headerUserLabel">admin</span>
+        <button onclick="adminLogout()" class="text-xs font-mono text-white bg-[#153EBD] hover:bg-[#2563FF] px-2.5 py-1 rounded transition-colors flex items-center gap-1">
+          <span class="material-symbols-outlined text-sm">logout</span>
+          <span class="hidden sm:inline">Logout</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+    <!-- VIEW 1: ADMIN LOGIN SCREEN (Default when not logged in) -->
+    <div id="loginScreen" class="max-w-md mx-auto my-12 p-6 rounded-2xl bg-[#170B10] border border-[#153EBD] shadow-[0_0_50px_rgba(37,99,255,0.15)] space-y-5">
+      <div class="text-center space-y-2 border-b border-[#153EBD]/60 pb-4">
+        <div class="w-12 h-12 mx-auto rounded-full bg-[#231118] border border-[#2563FF] flex items-center justify-center text-[#2563FF] shadow-[0_0_20px_rgba(37,99,255,0.3)]">
+          <span class="material-symbols-outlined text-2xl">admin_panel_settings</span>
+        </div>
+        <h2 class="font-headline text-lg uppercase font-bold text-white tracking-wider">COMMAND AUTHENTICATION</h2>
+        <p class="text-xs font-mono text-gray-400">RESTRICTED OPERATIONAL TELEMETRY // TOLANI DATA CLUSTER</p>
+      </div>
+
+      <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
+        <div class="space-y-1">
+          <label class="block font-mono text-xs uppercase text-gray-300" for="usernameInput">OPERATOR USERNAME</label>
+          <div class="relative">
+            <input type="text" id="usernameInput" value="admin" required autocomplete="username" class="w-full bg-[#09070A] border border-[#153EBD] px-3 py-2 rounded text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#2563FF]">
+            <span class="material-symbols-outlined absolute right-3 top-2.5 text-gray-500 text-sm">badge</span>
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <label class="block font-mono text-xs uppercase text-gray-300" for="passwordInput">SECURITY KEY / PASSWORD</label>
+          <div class="relative">
+            <input type="password" id="passwordInput" value="supernova2026#admin" required autocomplete="current-password" class="w-full bg-[#09070A] border border-[#153EBD] px-3 py-2 rounded text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#2563FF]">
+            <span class="material-symbols-outlined absolute right-3 top-2.5 text-gray-500 text-sm">key</span>
+          </div>
+        </div>
+
+        <div id="loginErrorAlert" class="hidden p-2.5 rounded bg-[#2a0e14] border border-[#ff5359] text-xs font-mono text-[#ff8085] flex items-center gap-2">
+          <span class="material-symbols-outlined text-sm shrink-0">warning</span>
+          <span id="loginErrorText">Invalid credentials</span>
+        </div>
+
+        <button type="submit" id="btnLoginSubmit" class="w-full py-2.5 rounded bg-[#2563FF] hover:bg-[#00A3FF] text-white font-mono text-xs uppercase font-bold tracking-wider transition-all shadow-[0_0_20px_rgba(37,99,255,0.35)] flex items-center justify-center gap-2">
+          <span>AUTHENTICATE OPERATOR</span>
+          <span class="material-symbols-outlined text-sm">arrow_forward</span>
+        </button>
+      </form>
+
+      <div class="p-2.5 rounded bg-[#09070A] border border-[#153EBD]/40 text-[10px] font-mono text-gray-500 text-center">
+        Tolani College of Commerce & Science // Dept of Data Science & IT
+      </div>
+    </div>
+
+    <!-- VIEW 2: AUTHENTICATED ADMIN DASHBOARD -->
+    <div id="dashboardScreen" class="hidden space-y-6">
+
+      <!-- Header with Status and Refresh -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#153EBD] gap-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-[#2563FF] animate-pulse"></span>
+            <h1 class="font-headline text-xl text-white uppercase font-bold tracking-wide">REGISTRATION TELEMETRY DASHBOARD</h1>
+          </div>
+          <p class="font-mono text-xs text-gray-400 mt-0.5">Real-time status monitoring, on-site payment checks &amp; ticket pass approvals.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="openQrConfigModal()" class="px-3 py-1.5 rounded bg-[#170B10] hover:bg-[#231118] border border-[#00A3FF]/60 hover:border-[#00E5FF] text-xs font-mono text-[#00E5FF] flex items-center gap-1.5 transition-all shadow-[0_0_10px_rgba(0,163,255,0.2)]">
+            <span class="material-symbols-outlined text-sm">qr_code_2</span>
+            <span>Organizer QR</span>
+          </button>
+          <button onclick="refreshDashboardData()" class="px-3 py-1.5 rounded bg-[#170B10] hover:bg-[#231118] border border-[#153EBD] hover:border-[#2563FF] text-xs font-mono text-white flex items-center gap-1.5 transition-all">
+            <span class="material-symbols-outlined text-sm" id="refreshSpinner">refresh</span>
+            <span>Sync Data</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 4 Live Metric Stat Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div class="p-4 rounded-xl bg-[#170B10] border border-[#153EBD] space-y-1">
+          <span class="font-mono text-[10px] text-gray-400 uppercase tracking-wider block">TOTAL TEAMS</span>
+          <div class="font-headline text-2xl text-white font-bold" id="statTotalTeams">0</div>
+          <div class="font-mono text-[10px] text-[#2563FF]" id="statTracksBreakdown">Web: 0/15 | AI: 0/25</div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-[#170B10] border border-amber-600/40 space-y-1">
+          <span class="font-mono text-[10px] text-amber-300 uppercase tracking-wider block">PENDING VERIFICATION</span>
+          <div class="font-headline text-2xl text-amber-400 font-bold" id="statPendingTeams">0</div>
+          <div class="font-mono text-[10px] text-amber-500/80">Fee / Approval Due</div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-[#170B10] border border-emerald-600/40 space-y-1">
+          <span class="font-mono text-[10px] text-emerald-300 uppercase tracking-wider block">CONFIRMED PASSES</span>
+          <div class="font-headline text-2xl text-emerald-400 font-bold" id="statVerifiedTeams">0</div>
+          <div class="font-mono text-[10px] text-emerald-500/80">Tickets Issued</div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-[#170B10] border border-[#153EBD] space-y-1">
+          <span class="font-mono text-[10px] text-gray-400 uppercase tracking-wider block">REVENUE COLLECTION</span>
+          <div class="font-headline text-2xl text-white font-bold" id="statRevenueCollected">₹0</div>
+          <div class="font-mono text-[10px] text-gray-400" id="statRevenueForecast">₹300 flat per team</div>
+        </div>
+      </div>
+
+      <!-- Team Registration Export Card -->
+      <div class="p-4 rounded-xl bg-[#170B10] border border-[#153EBD] shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-[#00E5FF] text-xl">file_download</span>
+            <span class="font-headline text-sm font-bold text-white uppercase tracking-wider">TEAM REGISTRATION EXPORT</span>
+            <span class="px-2 py-0.5 rounded bg-blue-950 text-[#00E5FF] border border-[#00A3FF]/50 text-[10px] font-mono font-bold" id="statExportTotalTeams">6 TEAMS REGISTERED</span>
+          </div>
+          <p class="font-mono text-xs text-gray-400">
+            Export registered team details for reporting, college verification, and official records.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+          <div class="flex items-center gap-1.5 font-mono text-xs">
+            <span class="text-gray-400 text-[11px] uppercase">STATUS:</span>
+            <select id="exportStatusFilter" class="bg-[#09070A] border border-[#153EBD] px-2.5 py-1.5 rounded text-xs text-gray-300 focus:outline-none focus:border-[#2563FF]">
+              <option value="ALL">All Statuses</option>
+              <option value="VERIFIED">Confirmed Passes (Paid &amp; Approved)</option>
+              <option value="PENDING_REVIEW">⚡ Proof Pending Review</option>
+              <option value="PENDING">Pending Check / Payment</option>
+              <option value="REJECTED">Registration Rejected</option>
+              <option value="PAY_REJECTED">Payment Proof Rejected</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-1.5 font-mono text-xs">
+            <span class="text-gray-400 text-[11px] uppercase">TRACK:</span>
+            <select id="exportTrackFilter" class="bg-[#09070A] border border-[#153EBD] px-2.5 py-1.5 rounded text-xs text-gray-300 focus:outline-none focus:border-[#2563FF]">
+              <option value="ALL">All Tracks</option>
+              <option value="web">Web Debugging</option>
+              <option value="ai">AI / ML System</option>
+            </select>
+          </div>
+
+          <button id="btnExportCsv" onclick="downloadTeamExportCsv()" type="button" class="px-4 py-1.5 rounded bg-[#2563FF] hover:bg-[#00A3FF] text-white font-mono text-xs uppercase font-bold flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(37,99,255,0.35)] disabled:opacity-50 disabled:cursor-not-allowed">
+            <span class="material-symbols-outlined text-sm" id="exportBtnIcon">download</span>
+            <span id="exportBtnText">EXPORT CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Export Notification Banner -->
+      <div id="exportAlertBanner" class="hidden p-3 rounded-xl font-mono text-xs flex items-center justify-between border transition-all">
+        <div class="flex items-center gap-2" id="exportAlertContent"></div>
+        <button onclick="document.getElementById('exportAlertBanner').classList.add('hidden')" class="text-gray-400 hover:text-white p-1">
+          <span class="material-symbols-outlined text-sm">close</span>
+        </button>
+      </div>
+
+      <!-- Table Filter & Search Controls -->
+      <div class="p-3 rounded-xl bg-[#170B10] border border-[#153EBD] flex flex-col md:flex-row items-center justify-between gap-3">
+        <div class="relative w-full md:w-80">
+          <input type="text" id="adminSearchInput" oninput="applyFilters()" placeholder="Search by ID, operative name, college..." class="w-full bg-[#09070A] border border-[#153EBD] pl-8 pr-3 py-1.5 rounded text-xs text-white placeholder:text-gray-500 focus:outline-none focus:border-[#2563FF]">
+          <span class="material-symbols-outlined absolute left-2.5 top-2 text-gray-500 text-sm">search</span>
+        </div>
+        <div class="flex items-center gap-2 w-full md:w-auto">
+          <select id="statusFilter" onchange="applyFilters()" class="bg-[#09070A] border border-[#153EBD] px-2.5 py-1.5 rounded text-xs text-gray-300 focus:outline-none focus:border-[#2563FF]">
+            <option value="ALL">All Statuses</option>
+            <option value="PENDING_REVIEW">⚡ Proof Pending Review</option>
+            <option value="PENDING">Pending Check / Payment</option>
+            <option value="VERIFIED">Confirmed Pass</option>
+            <option value="REJECTED">Registration Rejected</option>
+            <option value="PAY_REJECTED">Payment Proof Rejected</option>
+          </select>
+          <select id="trackFilter" onchange="applyFilters()" class="bg-[#09070A] border border-[#153EBD] px-2.5 py-1.5 rounded text-xs text-gray-300 focus:outline-none focus:border-[#2563FF]">
+            <option value="ALL">All Tracks</option>
+            <option value="web">Web Debugging</option>
+            <option value="ai">AI / ML System</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Registrations Data Table -->
+      <div class="rounded-xl border border-[#153EBD] bg-[#170B10] overflow-hidden shadow-xl">
+        <div class="overflow-x-auto max-h-[480px] overflow-y-auto">
+          <table class="w-full text-left font-mono text-xs">
+            <thead class="bg-[#09070A] border-b border-[#153EBD] text-gray-400 uppercase text-[10px] tracking-wider sticky top-0 z-10">
+              <tr>
+                <th class="p-3 pl-4">REF ID</th>
+                <th class="p-3">LEAD OPERATIVE</th>
+                <th class="p-3">TRACK</th>
+                <th class="p-3">ROSTER</th>
+                <th class="p-3">PAYMENT</th>
+                <th class="p-3">PASS STATUS</th>
+                <th class="p-3">EMAIL</th>
+                <th class="p-3 pr-4 text-right">ACTION</th>
+              </tr>
+            </thead>
+            <tbody id="registrationsTableBody" class="divide-y divide-[#153EBD]/40 text-gray-200">
+              <tr>
+                <td colspan="8" class="p-6 text-center text-gray-500">Connecting to telemetry cluster...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Registration Review & Action Modal / Drawer -->
+      <div id="teamInspectionDrawer" class="hidden p-5 sm:p-6 rounded-2xl bg-[#170B10] border border-[#2563FF] shadow-[0_0_40px_rgba(37,99,255,0.25)] space-y-4">
+        <div class="flex items-center justify-between border-b border-[#153EBD] pb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-[#2563FF] animate-pulse"></span>
+            <span class="font-headline text-sm font-bold text-white uppercase tracking-wider">// TEAM VERIFICATION &amp; PASS ISSUANCE //</span>
+            <span class="font-mono text-xs text-[#2563FF] font-bold" id="drawerRefId">-</span>
+          </div>
+          <button onclick="closeInspectionDrawer()" class="text-gray-400 hover:text-white transition-colors">
+            <span class="material-symbols-outlined text-lg">close</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+          <div class="p-3 rounded-lg bg-[#09070A] border border-[#153EBD]/80 space-y-1">
+            <span class="text-gray-500 uppercase text-[10px] block">TEAM LEAD</span>
+            <div class="font-bold text-white text-sm" id="drawerLeaderName">-</div>
+            <div class="text-gray-400" id="drawerEmail">-</div>
+            <div class="text-gray-400" id="drawerPhone">-</div>
+            <div class="text-[#2563FF] pt-1" id="drawerCollege">-</div>
+          </div>
+
+          <div class="p-3 rounded-lg bg-[#09070A] border border-[#153EBD]/80 space-y-1">
+            <span class="text-gray-500 uppercase text-[10px] block">EVENT ALLOCATION &amp; PASS STATUS</span>
+            <div class="font-bold text-[#2563FF] text-sm" id="drawerTrack">-</div>
+            <div class="text-gray-300" id="drawerTeamSize">-</div>
+            <div class="text-white">Fee: <strong class="text-white">₹300 (Due On-Site)</strong></div>
+            <div class="flex items-center gap-2 pt-1" id="drawerStatusPills">
+              <span id="drawerPayPill" class="px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-700/50 text-[10px]">PAYMENT: PENDING</span>
+              <span id="drawerVerifyPill" class="px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-700/50 text-[10px]">PASS: PENDING</span>
+            </div>
+          </div>
+
+          <div class="col-span-1 md:col-span-2 p-3 rounded-lg bg-[#09070A] border border-[#153EBD]/80 space-y-2">
+            <span class="text-gray-500 uppercase text-[10px] block">ROSTER OPERATIVES</span>
+            <div id="drawerMembersList" class="space-y-1.5 text-xs text-gray-200">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Payment Proof Inspection Card -->
+          <div class="col-span-1 md:col-span-2 p-3.5 rounded-lg bg-[#071329] border border-[#00A3FF]/70 space-y-3">
+            <div class="flex items-center justify-between border-b border-[#00A3FF]/40 pb-2">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-base text-[#00E5FF]">receipt_long</span>
+                <span class="font-mono text-xs font-bold text-white uppercase tracking-wider">// PAYMENT PROOF &amp; TRANSACTION AUDIT</span>
+              </div>
+              <div id="drawerPaymentStatusBadge" class="text-xs font-mono">
+                <!-- Status badge dynamically updated -->
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <!-- Screenshot Thumbnail -->
+              <div class="space-y-1.5">
+                <span class="text-gray-400 uppercase text-[10px] font-mono block">TRANSACTION SCREENSHOT</span>
+                <div id="drawerProofThumbnailContainer" class="w-full h-36 rounded-lg overflow-hidden border border-[#153EBD] bg-black flex items-center justify-center relative group cursor-pointer" onclick="openProofLightbox()">
+                  <img id="drawerProofImg" src="" alt="Proof Preview" class="w-full h-full object-contain">
+                  <div id="drawerProofMissingPlaceholder" class="hidden p-3 text-center text-gray-500 font-mono text-[11px] flex flex-col items-center justify-center">
+                    <span class="material-symbols-outlined text-2xl text-gray-600 mb-1">image_not_supported</span>
+                    <span>No screenshot uploaded yet</span>
+                  </div>
+                  <div id="drawerProofOverlay" class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white font-mono text-xs">
+                    <span class="material-symbols-outlined text-sm">zoom_in</span>
+                    <span>Click to Enlarge</span>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between text-[10px] font-mono pt-1">
+                  <button type="button" onclick="openProofLightbox()" class="text-[#00E5FF] hover:underline flex items-center gap-0.5">
+                    <span class="material-symbols-outlined text-xs">zoom_in</span>
+                    <span>Click to Enlarge</span>
+                  </button>
+                  <a id="drawerProofNewTabLink" href="#" target="_blank" class="text-gray-400 hover:text-white flex items-center gap-0.5">
+                    <span class="material-symbols-outlined text-xs">open_in_new</span>
+                    <span>Open Original</span>
+                  </a>
+                </div>
+              </div>
+
+              <!-- Transaction Telemetry & Review Notes -->
+              <div class="md:col-span-2 space-y-2 font-mono text-xs">
+                <div class="grid grid-cols-2 gap-2 p-2.5 rounded bg-[#030a1c] border border-[#00A3FF]/40 text-[11px]">
+                  <div>
+                    <span class="text-gray-400 block text-[9.5px] uppercase">UTR / TRANSACTION ID:</span>
+                    <span class="text-[#00E5FF] font-bold font-mono" id="drawerTxnId">-</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-400 block text-[9.5px] uppercase">REQUIRED FEE:</span>
+                    <span class="text-white font-bold">₹300 (Flat per Team)</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-400 block text-[9.5px] uppercase">SUBMITTED AT:</span>
+                    <span class="text-gray-300" id="drawerProofSubmittedAt">-</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-400 block text-[9.5px] uppercase">LAST REVIEWED:</span>
+                    <span class="text-gray-300" id="drawerProofReviewedAt">-</span>
+                  </div>
+                </div>
+
+                <div class="p-2.5 rounded bg-[#030a1c] border border-[#00A3FF]/30 space-y-1">
+                  <span class="text-gray-400 block text-[9.5px] uppercase">REVIEW NOTES / REJECTION REASON:</span>
+                  <div id="drawerPaymentNotes" class="text-gray-300 text-[11px] italic leading-tight">None</div>
+                </div>
+
+                <!-- Dedicated Payment Quick Review Actions -->
+                <div class="flex flex-wrap items-center gap-2 pt-1">
+                  <button id="btnDrawerVerifyPayment" onclick="actionRecordPayment()" class="px-3 py-1.5 rounded bg-emerald-900/80 hover:bg-emerald-700 text-emerald-200 border border-emerald-500/70 text-xs font-mono uppercase flex items-center gap-1.5 transition-colors font-bold shadow-[0_0_12px_rgba(34,197,94,0.3)]">
+                    <span class="material-symbols-outlined text-sm">verified_user</span>
+                    <span>Approve Payment (Mark Paid ₹300)</span>
+                  </button>
+                  <button id="btnDrawerRejectPayment" onclick="promptRejectPayment()" class="px-3 py-1.5 rounded bg-red-950/80 hover:bg-red-900 text-red-200 border border-red-700/60 text-xs font-mono uppercase flex items-center gap-1.5 transition-colors">
+                    <span class="material-symbols-outlined text-sm">highlight_off</span>
+                    <span>Reject Payment Proof</span>
+                  </button>
+                </div>
+
+                <!-- Reject Payment Input Box -->
+                <div id="rejectPaymentBox" class="hidden p-2.5 rounded bg-red-950/90 border border-red-600 space-y-1.5">
+                  <label class="block text-[10px] font-mono text-red-200 uppercase font-bold">REASON FOR REJECTING PAYMENT PROOF (Sent to participant for correction):</label>
+                  <input type="text" id="rejectPaymentReasonInput" placeholder="e.g. UTR illegible / screenshot cut off / wrong amount transferred" class="w-full bg-[#09070A] border border-red-700 px-2.5 py-1.5 rounded text-xs text-white focus:outline-none">
+                  <div class="flex items-center gap-2 pt-1">
+                    <button onclick="executeRejectPayment()" class="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white font-mono text-xs font-bold uppercase">Confirm Reject Payment</button>
+                    <button onclick="cancelRejectPaymentPrompt()" class="px-3 py-1 rounded bg-[#09070A] text-gray-400 hover:text-white font-mono text-xs uppercase">Cancel</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="p-3 rounded-xl bg-[#231118] border border-[#153EBD] space-y-2.5">
+          <span class="font-mono text-[10px] text-gray-400 uppercase tracking-wider block font-bold">// ORGANIZER ACTIONS</span>
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="actionRecordPayment()" id="btnActionPay" class="px-3.5 py-1.5 rounded bg-amber-900/60 hover:bg-amber-800 text-amber-200 border border-amber-600/50 text-xs font-mono uppercase flex items-center gap-1.5 transition-colors">
+              <span class="material-symbols-outlined text-sm">payments</span>
+              <span>Record Payment (₹300 Received)</span>
+            </button>
+            <button onclick="actionApprovePass()" id="btnActionApprove" class="px-3.5 py-1.5 rounded bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-500/60 text-xs font-mono uppercase flex items-center gap-1.5 transition-colors font-bold shadow-[0_0_15px_rgba(34,197,94,0.3)]">
+              <span class="material-symbols-outlined text-sm">verified</span>
+              <span>Approve &amp; Issue Official Ticket Pass</span>
+            </button>
+            <button onclick="downloadOfficialPdfPass()" id="btnDownloadPassPdf" class="px-3.5 py-1.5 rounded bg-[#170B10] hover:bg-[#231118] border border-[#2563FF] text-white text-xs font-mono uppercase flex items-center gap-1.5 transition-colors" title="Download official high-resolution vector PDF ticket">
+              <span class="material-symbols-outlined text-sm text-[#2563FF]">picture_as_pdf</span>
+              <span>Download Official PDF Pass</span>
+            </button>
+            <button onclick="promptReject()" id="btnActionReject" class="px-3.5 py-1.5 rounded bg-red-950/70 hover:bg-red-900 text-red-200 border border-red-700/50 text-xs font-mono uppercase flex items-center gap-1.5 transition-colors">
+              <span class="material-symbols-outlined text-sm">cancel</span>
+              <span>Reject Registration</span>
+            </button>
+            <button onclick="actionResendEmail()" id="btnActionEmail" class="px-3.5 py-1.5 rounded bg-[#170B10] hover:bg-[#231118] border border-[#153EBD] text-gray-300 hover:text-white text-xs font-mono uppercase flex items-center gap-1.5 transition-colors" title="Resend notification email with debounce lock">
+              <span class="material-symbols-outlined text-sm">mail</span>
+              <span>Resend Email</span>
+            </button>
+          </div>
+
+          <!-- Rejection Prompt Box -->
+          <div id="rejectBox" class="hidden p-3 rounded-lg bg-[#2a0e14] border border-red-600 space-y-2">
+            <label class="block text-xs font-mono text-red-300 uppercase">MANDATORY REJECTION REASON:</label>
+            <input type="text" id="rejectReasonInput" placeholder="e.g. Duplicate team member / invalid college credentials" class="w-full bg-[#09070A] border border-red-800 px-3 py-1.5 rounded text-xs text-white focus:outline-none">
+            <div class="flex items-center gap-2 pt-1">
+              <button onclick="executeReject()" class="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white font-mono text-xs font-bold uppercase">Confirm Rejection</button>
+              <button onclick="cancelRejectPrompt()" class="px-3 py-1 rounded bg-[#09070A] text-gray-400 hover:text-white font-mono text-xs uppercase">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audit & Email Logs -->
+        <div class="p-3 rounded-lg bg-[#09070A] border border-[#153EBD]/80 space-y-1.5 text-xs font-mono">
+          <span class="text-gray-500 uppercase text-[10px] block font-bold">// AUDIT TRAIL &amp; DISPATCH RECORDS</span>
+          <div id="drawerAuditLogs" class="text-gray-400 space-y-1 max-h-28 overflow-y-auto">
+            No audit records yet.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Lightbox Modal for Payment Screenshot -->
+  <div id="proofLightboxModal" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-4" onclick="if(event.target === this) closeProofLightbox()">
+    <div class="max-w-4xl w-full bg-[#09070A] border border-[#00A3FF] rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <div class="flex items-center justify-between p-3 border-b border-[#00A3FF]/40 bg-[#11090D]">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[#00E5FF]">receipt_long</span>
+          <span class="font-mono text-xs font-bold text-white uppercase" id="lightboxTitle">PAYMENT PROOF SCREENSHOT</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <a id="lightboxDownloadBtn" href="#" download="SUPERNOVA_PAYMENT_PROOF.jpg" class="px-2 py-1 rounded bg-[#170B10] hover:bg-[#2563FF] border border-[#153EBD] text-xs font-mono text-white flex items-center gap-1 transition-colors" title="Download Image">
+            <span class="material-symbols-outlined text-xs">download</span>
+            <span>Download</span>
+          </a>
+          <a id="lightboxNewTabBtn" href="#" target="_blank" class="px-2 py-1 rounded bg-[#170B10] hover:bg-[#2563FF] border border-[#153EBD] text-xs font-mono text-white flex items-center gap-1 transition-colors">
+            <span class="material-symbols-outlined text-xs">open_in_new</span>
+            <span>Open Original</span>
+          </a>
+          <button onclick="closeProofLightbox()" class="text-gray-400 hover:text-white p-1">
+            <span class="material-symbols-outlined text-lg">close</span>
+          </button>
+        </div>
+      </div>
+      <div class="flex-1 overflow-auto p-4 flex items-center justify-center bg-black/60">
+        <img id="lightboxImg" src="" alt="Full Payment Proof" class="max-w-full max-h-[75vh] object-contain rounded shadow-lg">
+      </div>
+    </div>
+  </div>
+
+  <!-- Organizer QR Code Configuration Modal -->
+  <div id="qrConfigModal" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target === this) closeQrConfigModal()">
+    <div class="max-w-md w-full bg-[#170B10] border border-[#00A3FF] rounded-2xl overflow-hidden shadow-2xl p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-[#00A3FF]/40 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[#00E5FF]">qr_code_2</span>
+          <span class="font-headline text-sm font-bold text-white uppercase tracking-wider">ORGANIZER PAYMENT QR CODE</span>
+        </div>
+        <button onclick="closeQrConfigModal()" class="text-gray-400 hover:text-white">
+          <span class="material-symbols-outlined text-lg">close</span>
+        </button>
+      </div>
+
+      <!-- Current QR Preview -->
+      <div class="p-3 rounded-xl bg-[#09070A] border border-[#153EBD] flex items-center gap-3">
+        <div class="w-20 h-20 rounded-lg overflow-hidden border border-[#00E5FF]/60 bg-white flex items-center justify-center shrink-0">
+          <img id="modalCurrentQrImg" src="/api/organizer-qr/image" alt="Current QR" class="w-full h-full object-contain">
+        </div>
+        <div class="font-mono text-xs space-y-1">
+          <div class="text-[#00E5FF] font-bold uppercase text-[10px]">// ACTIVE TELEMETRY CONFIG</div>
+          <div class="text-white font-bold" id="modalBeneficiaryText">ARRAMAN SWAIN</div>
+          <div class="text-gray-400 text-[11px]" id="modalUpiText">swainpapa@fam</div>
+          <div class="text-emerald-400 text-[10px]">Fee: ₹300 flat per team</div>
+        </div>
+      </div>
+
+      <!-- Upload Replacement QR Image -->
+      <div class="space-y-2">
+        <label class="block font-mono text-[10.5px] uppercase text-gray-300">UPLOAD NEW OFFICIAL QR CODE IMAGE:</label>
+        <div id="modalQrDropzone" class="border-2 border-dashed border-[#153EBD] hover:border-[#00E5FF] rounded-xl p-4 text-center cursor-pointer bg-[#09070A] transition-all space-y-1.5" onclick="document.getElementById('modalQrFileInput').click()" ondragover="event.preventDefault(); this.classList.add('border-[#00E5FF]');" ondragleave="event.preventDefault(); this.classList.remove('border-[#00E5FF]');" ondrop="event.preventDefault(); this.classList.remove('border-[#00E5FF]'); handleModalQrSelect(event);">
+          <input type="file" id="modalQrFileInput" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="handleModalQrSelect(event)">
+          <span class="material-symbols-outlined text-2xl text-[#00E5FF]">cloud_upload</span>
+          <div class="font-mono text-xs text-white">Click or drag &amp; drop new QR image</div>
+          <div class="font-mono text-[9.5px] text-gray-500">Accepted formats: JPEG, PNG, WebP (Max: 5 MB)</div>
+        </div>
+      </div>
+
+      <!-- Selected Image Preview -->
+      <div id="modalQrPreviewBox" class="hidden p-2.5 rounded bg-[#030a1c] border border-[#00A3FF] flex items-center justify-between font-mono text-xs">
+        <div class="flex items-center gap-2 truncate">
+          <img id="modalQrPreviewImg" src="" class="w-8 h-8 rounded object-cover border border-[#00E5FF]/50">
+          <span id="modalQrPreviewName" class="text-white truncate text-[11px]">-</span>
+        </div>
+        <button onclick="clearModalQrSelection()" type="button" class="text-red-400 hover:text-red-300 text-xs shrink-0">Clear</button>
+      </div>
+
+      <div id="modalQrAlert" class="hidden p-2.5 rounded bg-emerald-950 text-emerald-300 text-xs font-mono"></div>
+
+      <div class="flex items-center gap-2 pt-2 border-t border-[#153EBD]/50">
+        <button id="btnSaveOrganizerQr" onclick="saveNewOrganizerQr()" type="button" disabled class="flex-1 py-2 rounded bg-[#2563FF] hover:bg-[#00A3FF] text-white font-mono text-xs uppercase font-bold flex items-center justify-center gap-1.5 opacity-50 cursor-not-allowed">
+          <span class="material-symbols-outlined text-sm">save</span>
+          <span>SAVE AS OFFICIAL QR</span>
+        </button>
+        <button onclick="closeQrConfigModal()" type="button" class="px-4 py-2 rounded bg-[#09070A] hover:bg-[#170B10] border border-[#153EBD] text-gray-300 font-mono text-xs uppercase">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let adminToken = localStorage.getItem('sn26_admin_token') || null;
+    let allRegistrations = [];
+    let currentActiveTeamId = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (adminToken) {
+        showDashboard();
+      } else {
+        showLogin();
+      }
+    });
+
+    function showLogin() {
+      document.getElementById('loginScreen').classList.remove('hidden');
+      document.getElementById('dashboardScreen').classList.add('hidden');
+      document.getElementById('authHeaderControls').classList.add('hidden');
+    }
+
+    function showDashboard() {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('dashboardScreen').classList.remove('hidden');
+      document.getElementById('authHeaderControls').classList.remove('hidden');
+      refreshDashboardData();
+    }
+
+    async function handleLoginSubmit(e) {
+      e.preventDefault();
+      const user = document.getElementById('usernameInput').value.trim();
+      const pass = document.getElementById('passwordInput').value.trim();
+      const errBox = document.getElementById('loginErrorAlert');
+      const errText = document.getElementById('loginErrorText');
+
+      if (errBox) errBox.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, password: pass })
+        });
+        const data = await res.json();
+        if (res.ok && data.token) {
+          adminToken = data.token;
+          localStorage.setItem('sn26_admin_token', adminToken);
+          document.getElementById('headerUserLabel').innerText = data.username || user;
+          showDashboard();
+        } else {
+          errText.innerText = data.error || 'Invalid administrator credentials.';
+          errBox.classList.remove('hidden');
+        }
+      } catch (err) {
+        errText.innerText = 'Unable to reach the server. Please verify backend is running.';
+        errBox.classList.remove('hidden');
+      }
+    }
+
+    function adminLogout() {
+      if (adminToken) {
+        fetch('/api/admin/logout', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken }
+        }).catch(() => {});
+      }
+      adminToken = null;
+      localStorage.removeItem('sn26_admin_token');
+      showLogin();
+    }
+
+    async function refreshDashboardData() {
+      if (!adminToken) return;
+
+      const spinner = document.getElementById('refreshSpinner');
+      if (spinner) spinner.classList.add('animate-spin');
+
+      try {
+        // 1. Fetch Summary Metrics
+        const dashRes = await fetch('/api/admin/dashboard', {
+          headers: { 'Authorization': 'Bearer ' + adminToken }
+        });
+        if (dashRes.status === 401) {
+          adminLogout();
+          return;
+        }
+        if (!dashRes.ok) throw new Error('Dashboard API error: ' + dashRes.status);
+
+        const dashData = await dashRes.json();
+        const sum = dashData.summary || {};
+        const cap = dashData.capacities || { web: 15, ai: 25 };
+
+        document.getElementById('statTotalTeams').innerText = sum.total_teams || 0;
+        document.getElementById('statTracksBreakdown').innerText = `Web: ${sum.web_teams || 0}/${cap.web} | AI: ${sum.ai_teams || 0}/${cap.ai}`;
+        document.getElementById('statPendingTeams').innerText = sum.pending_verification || 0;
+        document.getElementById('statVerifiedTeams').innerText = sum.verified || 0;
+        document.getElementById('statRevenueCollected').innerText = `₹${(sum.payment_paid || 0) * 300}`;
+        document.getElementById('statRevenueForecast').innerText = `Paid: ${sum.payment_paid || 0} | Due: ${(sum.total_teams || 0) - (sum.payment_paid || 0)} teams`;
+
+        const exportTotalBadge = document.getElementById('statExportTotalTeams');
+        if (exportTotalBadge) {
+          exportTotalBadge.innerText = `${sum.total_teams || 0} TEAMS REGISTERED`;
+        }
+
+        // 2. Fetch Live Registration Records
+        const listRes = await fetch('/api/admin/registrations', {
+          headers: { 'Authorization': 'Bearer ' + adminToken }
+        });
+        if (!listRes.ok) throw new Error('Registrations API error: ' + listRes.status);
+
+        const listData = await listRes.json();
+        allRegistrations = listData.registrations || listData.teams || [];
+        applyFilters();
+
+      } catch (err) {
+        console.error('Error fetching admin telemetry:', err);
+        const tbody = document.getElementById('registrationsTableBody');
+        if (tbody) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="7" class="p-8 text-center font-mono">
+                <div class="inline-flex flex-col items-center gap-2 text-red-400">
+                  <span class="material-symbols-outlined text-3xl text-red-500">cloud_off</span>
+                  <div class="text-sm font-bold">TELEMETRY LINK FAILED</div>
+                  <div class="text-xs text-gray-400 max-w-sm">Unable to retrieve live registrations from database cluster. Please verify the Python server is running.</div>
+                  <button onclick="refreshDashboardData()" class="mt-2 px-3 py-1.5 rounded bg-[#231118] border border-[#2563FF] text-xs font-mono text-white hover:bg-[#2563FF] transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">refresh</span>
+                    <span>Retry Sync</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }
+      } finally {
+        if (spinner) setTimeout(() => spinner.classList.remove('animate-spin'), 400);
+      }
+    }
+
+    function renderTable(teams) {
+      const tbody = document.getElementById('registrationsTableBody');
+      if (!tbody) return;
+
+      if (!allRegistrations || allRegistrations.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="p-8 text-center font-mono text-gray-400">
+              <div class="inline-flex flex-col items-center gap-1.5">
+                <span class="material-symbols-outlined text-3xl text-gray-600">inbox</span>
+                <span class="text-sm font-bold text-gray-300">No registrations yet in database.</span>
+                <span class="text-xs text-gray-500">Live registrations submitted from the public portal will appear here in real-time.</span>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      if (!teams || teams.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="p-6 text-center font-mono text-gray-400">
+              <div class="inline-flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-base text-gray-500">filter_alt_off</span>
+                <span>No registrations match the selected filters.</span>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = teams.map(t => {
+        const isPaid = t.payment_status === 'PAID';
+        const isPendingReview = t.payment_status === 'PENDING_REVIEW';
+        const isPayRejected = t.payment_status === 'REJECTED';
+        const isApproved = t.verification_status === 'VERIFIED';
+        const isRejected = t.verification_status === 'REJECTED';
+
+        let payBadge = '';
+        if (isPaid) {
+          payBadge = '<span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-700/50 text-[10px] whitespace-nowrap">PAID ₹300</span>';
+        } else if (isPendingReview) {
+          payBadge = '<span class="px-2 py-0.5 rounded bg-blue-950 text-[#00E5FF] border border-[#00A3FF] text-[10px] whitespace-nowrap animate-pulse flex items-center gap-1 font-bold shadow-[0_0_8px_rgba(0,229,255,0.3)]"><span class="w-1.5 h-1.5 rounded-full bg-[#00E5FF]"></span>REVIEW PROOF</span>';
+        } else if (isPayRejected) {
+          payBadge = '<span class="px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-700/50 text-[10px] whitespace-nowrap">PROOF REJECTED</span>';
+        } else {
+          payBadge = '<span class="px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-700/50 text-[10px] whitespace-nowrap">PENDING ₹300</span>';
+        }
+
+        const statusBadge = isApproved
+          ? '<span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-700/50 text-[10px] whitespace-nowrap">CONFIRMED PASS</span>'
+          : (isRejected
+            ? '<span class="px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-700/50 text-[10px] whitespace-nowrap">REJECTED</span>'
+            : '<span class="px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-700/50 text-[10px] whitespace-nowrap">PENDING APPROVAL</span>');
+
+        let emailBadge = '<span class="px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-zinc-700/50 text-[10px] whitespace-nowrap">UNSENT</span>';
+        if (t.last_email_status === 'SENT') {
+          emailBadge = `<span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-700/50 text-[10px] whitespace-nowrap" title="Sent: ${t.last_email_time || ''}">SENT</span>`;
+        } else if (t.last_email_status === 'FAILED' || t.last_email_status === 'CONFIG_ERROR') {
+          const errTip = (t.last_email_error || 'Dispatch error').replace(/"/g, '&quot;');
+          emailBadge = `<span class="px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-700/50 text-[10px] whitespace-nowrap" title="${errTip}">FAILED</span>`;
+        } else if (t.last_email_status === 'NOT_CONFIGURED') {
+          emailBadge = `<span class="px-2 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-600/50 text-[10px] whitespace-nowrap" title="SMTP not configured. Logged to server log.">PENDING SMTP</span>`;
+        } else if (t.last_email_status === 'DUPLICATE_SKIPPED') {
+          emailBadge = `<span class="px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-700/50 text-[10px] whitespace-nowrap" title="Final confirmation already delivered">DELIVERED</span>`;
+        } else if (t.last_email_status === 'BLOCKED') {
+          emailBadge = `<span class="px-2 py-0.5 rounded bg-yellow-950 text-yellow-400 border border-yellow-700/50 text-[10px] whitespace-nowrap" title="Gate blocked: requires both Paid and Approved">BLOCKED</span>`;
+        }
+
+        return `
+          <tr class="hover:bg-[#231118]/60 transition-colors border-b border-[#153EBD]/30">
+            <td class="p-3 pl-4 font-mono font-bold text-[#2563FF] whitespace-nowrap">${t.id}</td>
+            <td class="p-3">
+              <div class="font-bold text-white">${t.leader_name}</div>
+              <div class="text-[10px] text-gray-400 truncate max-w-xs">${t.college || t.email || ''}</div>
+            </td>
+            <td class="p-3 text-gray-300 whitespace-nowrap">${t.track_label || t.track}</td>
+            <td class="p-3 text-gray-300 whitespace-nowrap">${t.team_size === 2 ? 'Duo (2)' : 'Trio (3)'}</td>
+            <td class="p-3">${payBadge}</td>
+            <td class="p-3">${statusBadge}</td>
+            <td class="p-3">${emailBadge}</td>
+            <td class="p-3 pr-4 text-right whitespace-nowrap">
+              <div class="flex items-center justify-end gap-1.5">
+                ${t.has_proof && t.proof_url ? `
+                  <button onclick="openProofLightbox('${t.proof_url}', 'PAYMENT PROOF // ${t.id}', '${t.id}')" title="Inspect Payment Screenshot" class="p-1 rounded bg-[#030a1c] hover:bg-[#153EBD] text-[#00E5FF] hover:text-white border border-[#00A3FF]/50 transition-colors flex items-center justify-center">
+                    <span class="material-symbols-outlined text-sm">receipt_long</span>
+                  </button>
+                ` : ''}
+                <button onclick="openInspectionDrawer('${t.id}')" class="px-2.5 py-1 rounded bg-[#09070A] hover:bg-[#2563FF] hover:text-white border border-[#153EBD] text-xs font-mono transition-colors flex items-center gap-1">
+                  <span class="material-symbols-outlined text-xs">visibility</span>
+                  <span>Inspect</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function applyFilters() {
+      const q = (document.getElementById('adminSearchInput').value || '').toLowerCase();
+      const statusF = document.getElementById('statusFilter').value;
+      const trackF = document.getElementById('trackFilter').value;
+
+      const filtered = allRegistrations.filter(t => {
+        const matchesQ = !q || (
+          (t.id && t.id.toLowerCase().includes(q)) ||
+          (t.leader_name && t.leader_name.toLowerCase().includes(q)) ||
+          (t.email && t.email.toLowerCase().includes(q)) ||
+          (t.college && t.college.toLowerCase().includes(q))
+        );
+
+        let matchesStatus = true;
+        if (statusF === 'PENDING_REVIEW') matchesStatus = t.payment_status === 'PENDING_REVIEW';
+        else if (statusF === 'PAY_REJECTED') matchesStatus = t.payment_status === 'REJECTED';
+        else if (statusF === 'PENDING') matchesStatus = (t.verification_status !== 'VERIFIED' && t.verification_status !== 'REJECTED') || t.payment_status !== 'PAID';
+        else if (statusF === 'VERIFIED') matchesStatus = t.verification_status === 'VERIFIED' && t.payment_status === 'PAID';
+        else if (statusF === 'REJECTED') matchesStatus = t.verification_status === 'REJECTED';
+
+        let matchesTrack = true;
+        if (trackF !== 'ALL') matchesTrack = t.track === trackF;
+
+        return matchesQ && matchesStatus && matchesTrack;
+      });
+
+      renderTable(filtered);
+    }
+
+    async function downloadTeamExportCsv() {
+      if (!adminToken) return;
+
+      const btn = document.getElementById('btnExportCsv');
+      const icon = document.getElementById('exportBtnIcon');
+      const text = document.getElementById('exportBtnText');
+      const alertBox = document.getElementById('exportAlertBanner');
+      const alertContent = document.getElementById('exportAlertContent');
+
+      const statusF = document.getElementById('exportStatusFilter')?.value || 'ALL';
+      const trackF = document.getElementById('exportTrackFilter')?.value || 'ALL';
+
+      // Set loading state
+      btn.disabled = true;
+      icon.innerText = 'sync';
+      icon.classList.add('animate-spin');
+      text.innerText = 'PREPARING CSV...';
+      if (alertBox) alertBox.classList.add('hidden');
+
+      try {
+        const queryParams = new URLSearchParams({
+          status: statusF,
+          track: trackF
+        });
+
+        const res = await fetch(`/api/admin/export/csv?${queryParams.toString()}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer ' + adminToken
+          }
+        });
+
+        if (res.status === 401) {
+          adminLogout();
+          return;
+        }
+
+        if (!res.ok) {
+          let errDetail = 'Failed to generate CSV export.';
+          try {
+            const errData = await res.json();
+            if (errData.error) errDetail = errData.error;
+          } catch (_) {}
+          throw new Error(errDetail);
+        }
+
+        // Extract filename from Content-Disposition header if available
+        let filename = `supernova_2026_team_registrations_${new Date().toISOString().slice(0, 10)}.csv`;
+        const disp = res.headers.get('Content-Disposition');
+        if (disp && disp.includes('filename=')) {
+          const match = disp.match(/filename=["']?([^"';]+)["']?/);
+          if (match && match[1]) filename = match[1].trim();
+        }
+
+        const blob = await res.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = downloadUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(downloadUrl);
+        document.body.removeChild(a);
+
+        // Success notification banner
+        if (alertBox && alertContent) {
+          alertBox.className = 'p-3 rounded-xl font-mono text-xs flex items-center justify-between border bg-emerald-950/80 border-emerald-600/50 text-emerald-300';
+          alertContent.innerHTML = `
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-emerald-400 text-base">check_circle</span>
+              <span>CSV exported successfully! Downloaded <strong>${filename}</strong> (${(blob.size / 1024).toFixed(1)} KB).</span>
+            </div>
+          `;
+          alertBox.classList.remove('hidden');
+          setTimeout(() => {
+            if (alertBox) alertBox.classList.add('hidden');
+          }, 8000);
+        }
+      } catch (err) {
+        console.error('CSV Export Error:', err);
+        if (alertBox && alertContent) {
+          alertBox.className = 'p-3 rounded-xl font-mono text-xs flex items-center justify-between border bg-red-950/80 border-red-600/50 text-red-300';
+          alertContent.innerHTML = `
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-red-400 text-base">error</span>
+              <span>${err.message || 'Error downloading team registrations CSV.'}</span>
+            </div>
+          `;
+          alertBox.classList.remove('hidden');
+        }
+      } finally {
+        btn.disabled = false;
+        icon.innerText = 'download';
+        icon.classList.remove('animate-spin');
+        text.innerText = 'EXPORT CSV';
+      }
+    }
+
+    async function openInspectionDrawer(teamId) {
+      currentActiveTeamId = teamId;
+      cancelRejectPrompt();
+      const drawer = document.getElementById('teamInspectionDrawer');
+
+      try {
+        const res = await fetch(`/api/admin/registrations/${teamId}`, {
+          headers: { 'Authorization': 'Bearer ' + adminToken }
+        });
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const team = data.team || {};
+        const members = data.members || [];
+        const actions = data.admin_actions || [];
+        const dispatches = data.email_dispatches || [];
+
+        document.getElementById('drawerRefId').innerText = team.id || '';
+        document.getElementById('drawerLeaderName').innerText = team.leader_name || '';
+        document.getElementById('drawerEmail').innerText = team.email || (members[0] && members[0].email) || 'N/A';
+        document.getElementById('drawerPhone').innerText = team.phone || (members[0] && members[0].phone) || 'N/A';
+        document.getElementById('drawerCollege').innerText = team.college || (members[0] && members[0].college) || 'Tolani College';
+        document.getElementById('drawerTrack').innerText = team.track_label || team.track;
+        document.getElementById('drawerTeamSize').innerText = team.team_size === 2 ? 'DUO (2 Hackers)' : 'TRIO (3 Hackers)';
+
+        const payPill = document.getElementById('drawerPayPill');
+        const verifyPill = document.getElementById('drawerVerifyPill');
+
+        if (team.payment_status === 'PAID') {
+          payPill.className = "px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-700/50 text-[10px]";
+          payPill.innerText = "PAYMENT: PAID (₹300)";
+        } else if (team.payment_status === 'PENDING_REVIEW') {
+          payPill.className = "px-2 py-0.5 rounded bg-blue-950 text-[#00E5FF] border border-[#00A3FF] text-[10px] animate-pulse";
+          payPill.innerText = "PAYMENT: PROOF SUBMITTED (REVIEW)";
+        } else if (team.payment_status === 'REJECTED') {
+          payPill.className = "px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-700/50 text-[10px]";
+          payPill.innerText = "PAYMENT: PROOF REJECTED";
+        } else {
+          payPill.className = "px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-700/50 text-[10px]";
+          payPill.innerText = "PAYMENT: PENDING (₹300 DUE)";
+        }
+
+        if (team.verification_status === 'VERIFIED') {
+          verifyPill.className = "px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-700/50 text-[10px]";
+          verifyPill.innerText = "PASS: CONFIRMED";
+        } else if (team.verification_status === 'REJECTED') {
+          verifyPill.className = "px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-700/50 text-[10px]";
+          verifyPill.innerText = "PASS: REJECTED";
+        } else {
+          verifyPill.className = "px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-700/50 text-[10px]";
+          verifyPill.innerText = "PASS: AWAITING APPROVAL";
+        }
+
+        // Populate Payment Proof Card
+        cancelRejectPaymentPrompt();
+        const proofImg = document.getElementById('drawerProofImg');
+        const proofMissing = document.getElementById('drawerProofMissingPlaceholder');
+        const proofOverlay = document.getElementById('drawerProofOverlay');
+        const txnIdEl = document.getElementById('drawerTxnId');
+        const submittedAtEl = document.getElementById('drawerProofSubmittedAt');
+        const reviewedAtEl = document.getElementById('drawerProofReviewedAt');
+        const notesEl = document.getElementById('drawerPaymentNotes');
+        const payBadgeEl = document.getElementById('drawerPaymentStatusBadge');
+        const btnVerifyPay = document.getElementById('btnDrawerVerifyPayment');
+        const btnRejectPay = document.getElementById('btnDrawerRejectPayment');
+
+        if (txnIdEl) txnIdEl.innerText = team.transaction_id || 'Not specified by user';
+        if (submittedAtEl) submittedAtEl.innerText = team.payment_submitted_at || 'Pending submission';
+        if (reviewedAtEl) reviewedAtEl.innerText = team.payment_reviewed_at || 'Not reviewed yet';
+        if (notesEl) notesEl.innerText = team.payment_review_notes || 'None';
+
+        const drawerProofNewTab = document.getElementById('drawerProofNewTabLink');
+        if (team.has_proof) {
+          const authParam = adminToken ? `?token=${encodeURIComponent(adminToken)}&t=${Date.now()}` : `?t=${Date.now()}`;
+          const proofUrl = `/api/admin/registrations/${encodeURIComponent(team.id)}/proof${authParam}`;
+          const fallbackUrl = `/api/ticket/${encodeURIComponent(team.id)}/proof?t=${Date.now()}`;
+
+          if (proofImg) {
+            proofImg.onerror = function() {
+              this.onerror = null;
+              this.src = fallbackUrl;
+            };
+            proofImg.src = proofUrl;
+            proofImg.classList.remove('hidden');
+          }
+          if (drawerProofNewTab) {
+            drawerProofNewTab.href = proofUrl;
+          }
+          if (proofMissing) proofMissing.classList.add('hidden');
+          if (proofOverlay) proofOverlay.classList.remove('hidden');
+        } else {
+          if (proofImg) {
+            proofImg.onerror = null;
+            proofImg.src = '';
+            proofImg.classList.add('hidden');
+          }
+          if (drawerProofNewTab) {
+            drawerProofNewTab.href = '#';
+          }
+          if (proofMissing) proofMissing.classList.remove('hidden');
+          if (proofOverlay) proofOverlay.classList.add('hidden');
+        }
+
+        if (payBadgeEl) {
+          if (team.payment_status === 'PAID') {
+            payBadgeEl.innerHTML = '<span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-700/60 font-bold">PAID (₹300)</span>';
+          } else if (team.payment_status === 'PENDING_REVIEW') {
+            payBadgeEl.innerHTML = '<span class="px-2 py-0.5 rounded bg-blue-950 text-[#00E5FF] border border-[#00A3FF] animate-pulse font-bold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-[#00E5FF]"></span>PROOF PENDING REVIEW</span>';
+          } else if (team.payment_status === 'REJECTED') {
+            payBadgeEl.innerHTML = '<span class="px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-700 font-bold">PROOF REJECTED</span>';
+          } else {
+            payBadgeEl.innerHTML = '<span class="px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-700/50">AWAITING SUBMISSION</span>';
+          }
+        }
+
+        if (btnVerifyPay) {
+          if (team.payment_status === 'PAID') {
+            btnVerifyPay.innerHTML = '<span class="material-symbols-outlined text-sm">check</span><span>Payment Verified</span>';
+            btnVerifyPay.disabled = true;
+            btnVerifyPay.classList.add('opacity-70', 'cursor-default');
+          } else {
+            btnVerifyPay.innerHTML = '<span class="material-symbols-outlined text-sm">verified_user</span><span>Approve Payment (Mark Paid ₹300)</span>';
+            btnVerifyPay.disabled = false;
+            btnVerifyPay.classList.remove('opacity-70', 'cursor-default');
+          }
+        }
+
+        // Dynamically adjust action buttons according to live team state
+        const btnPay = document.getElementById('btnActionPay');
+        const btnApprove = document.getElementById('btnActionApprove');
+
+        if (team.payment_status === 'PAID') {
+          btnPay.innerHTML = '<span class="material-symbols-outlined text-sm">money_off</span><span>Revoke Payment (Mark Pending)</span>';
+          btnPay.onclick = actionRejectPayment;
+          btnPay.className = "px-3.5 py-1.5 rounded bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-600/50 text-xs font-mono uppercase flex items-center gap-1.5 transition-colors";
+        } else {
+          btnPay.innerHTML = '<span class="material-symbols-outlined text-sm">payments</span><span>Record Payment (₹300 Received)</span>';
+          btnPay.onclick = actionRecordPayment;
+          btnPay.className = "px-3.5 py-1.5 rounded bg-amber-900/60 hover:bg-amber-800 text-amber-200 border border-amber-600/50 text-xs font-mono uppercase flex items-center gap-1.5 transition-colors font-bold";
+        }
+
+        if (team.verification_status === 'VERIFIED') {
+          btnApprove.innerHTML = '<span class="material-symbols-outlined text-sm">check_circle</span><span>Registration Approved</span>';
+          btnApprove.disabled = true;
+          btnApprove.className = "px-3.5 py-1.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-700/60 text-xs font-mono uppercase flex items-center gap-1.5 opacity-80 cursor-default";
+        } else {
+          btnApprove.innerHTML = '<span class="material-symbols-outlined text-sm">verified</span><span>Approve & Issue Official Pass</span>';
+          btnApprove.disabled = false;
+          btnApprove.onclick = actionApprovePass;
+          btnApprove.className = "px-3.5 py-1.5 rounded bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-500/60 text-xs font-mono uppercase flex items-center gap-1.5 transition-colors font-bold shadow-[0_0_15px_rgba(34,197,94,0.3)]";
+        }
+
+        // Render Roster Members
+        const memList = document.getElementById('drawerMembersList');
+        memList.innerHTML = members.map(m => `
+          <div class="p-2 rounded bg-[#170B10] border border-[#153EBD]/60 flex items-center justify-between">
+            <div>
+              <strong class="text-white">${m.name}</strong>
+              <span class="text-gray-400 text-[10px] ml-1">(${m.role || 'Member'})</span>
+              <span class="text-gray-400 text-[10px] ml-2 font-mono">${m.email}</span>
+            </div>
+            <span class="text-[#2563FF] text-[10px]">${m.college || ''}</span>
+          </div>
+        `).join('');
+
+        // Render Audit Logs
+        const auditBox = document.getElementById('drawerAuditLogs');
+        if (actions.length === 0 && dispatches.length === 0) {
+          auditBox.innerHTML = '<div class="text-gray-500">No actions recorded yet.</div>';
+        } else {
+          const actionItems = actions.map(a => `
+            <div>• [${a.created_at || 'Just now'}] <strong>${a.action}</strong> by ${a.admin_user || 'admin'}: ${a.notes || ''}</div>
+          `);
+          const dispatchItems = dispatches.map(d => {
+            const errStr = d.error_message ? ` (Note: ${d.error_message})` : '';
+            const typeStr = d.notification_type || 'NOTIFICATION';
+            const colorClass = d.status === 'SENT' ? 'text-emerald-400' : (d.status === 'FAILED' ? 'text-red-400' : 'text-amber-400');
+            return `<div class="${colorClass}">• [${d.sent_at || ''}] <strong>[${typeStr}]</strong> Status: ${d.status} → ${d.recipient_email}${errStr}</div>`;
+          });
+          auditBox.innerHTML = actionItems.concat(dispatchItems).join('');
+        }
+
+        drawer.classList.remove('hidden');
+        drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (e) {
+        console.error('Error fetching team details:', e);
+      }
+    }
+
+    function closeInspectionDrawer() {
+      document.getElementById('teamInspectionDrawer').classList.add('hidden');
+      currentActiveTeamId = null;
+    }
+
+    async function actionRecordPayment() {
+      if (!currentActiveTeamId || !adminToken) return;
+      try {
+        const res = await fetch(`/api/admin/registrations/${currentActiveTeamId}/verify-payment`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        if (res.ok) {
+          refreshDashboardData();
+          openInspectionDrawer(currentActiveTeamId);
+        }
+      } catch (err) {
+        alert('Could not record payment.');
+      }
+    }
+
+    async function actionRejectPayment() {
+      if (!currentActiveTeamId || !adminToken) return;
+      try {
+        const res = await fetch(`/api/admin/registrations/${currentActiveTeamId}/reject-payment`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        if (res.ok) {
+          refreshDashboardData();
+          openInspectionDrawer(currentActiveTeamId);
+        } else {
+          const err = await res.json();
+          alert(err.error || 'Could not revoke payment.');
+        }
+      } catch (err) {
+        alert('Could not revoke payment.');
+      }
+    }
+
+    async function actionApprovePass() {
+      if (!currentActiveTeamId || !adminToken) return;
+      try {
+        const res = await fetch(`/api/admin/registrations/${currentActiveTeamId}/approve`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (res.ok) {
+          const notice = data.email_dispatch ? ` (Email: ${data.email_dispatch.status})` : '';
+          alert(`Team approved! Official Ticket Pass has been issued.${notice}`);
+          refreshDashboardData();
+          openInspectionDrawer(currentActiveTeamId);
+        } else {
+          alert(data.error || 'Approval failed.');
+        }
+      } catch (err) {
+        alert('Error approving pass.');
+      }
+    }
+
+    function promptReject() {
+      document.getElementById('rejectBox').classList.remove('hidden');
+    }
+
+    function cancelRejectPrompt() {
+      document.getElementById('rejectBox').classList.add('hidden');
+      document.getElementById('rejectReasonInput').value = '';
+    }
+
+    async function executeReject() {
+      if (!currentActiveTeamId || !adminToken) return;
+      const reason = document.getElementById('rejectReasonInput').value.trim();
+      if (!reason || reason.length < 3) {
+        alert('Please specify a rejection reason.');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/admin/registrations/${currentActiveTeamId}/reject`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: reason })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert('Registration rejected.');
+          cancelRejectPrompt();
+          refreshDashboardData();
+          openInspectionDrawer(currentActiveTeamId);
+        } else {
+          alert(data.error || 'Rejection failed.');
+        }
+      } catch (err) {
+        alert('Error rejecting registration.');
+      }
+    }
+
+    async function actionResendEmail() {
+      if (!currentActiveTeamId || !adminToken) return;
+      const btn = document.getElementById('btnActionEmail');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">sync</span><span>Dispatching...</span>';
+      }
+      try {
+        const res = await fetch(`/api/admin/registrations/${currentActiveTeamId}/resend-email`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (res.ok) {
+          const status = data.dispatch ? data.dispatch.status : 'DISPATCHED';
+          alert(`Email dispatch processed.\nStatus: ${status}\nRecipient: ${(data.dispatch && data.dispatch.recipient) || ''}`);
+          refreshDashboardData();
+          openInspectionDrawer(currentActiveTeamId);
+        } else {
+          alert(data.error || 'Could not dispatch email.');
+        }
+      } catch (err) {
+        alert('Error dispatching email.');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span class="material-symbols-outlined text-sm">mail</span><span>Resend Email</span>';
+        }
+      }
+    }
+
+    async function downloadOfficialPdfPass() {
+      if (!currentActiveTeamId || !adminToken) return;
+      const btn = document.getElementById('btnDownloadPassPdf');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">sync</span><span>Generating...</span>';
+      }
+      try {
+        const res = await fetch(`/api/admin/registrations/${currentActiveTeamId}/pdf`, {
+          headers: { 'Authorization': 'Bearer ' + adminToken }
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert(err.error || 'Could not download official PDF pass.');
+          return;
+        }
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `SUPERNOVA_PASS_${currentActiveTeamId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('Error generating or downloading official pass PDF.');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span class="material-symbols-outlined text-sm text-[#2563FF]">picture_as_pdf</span><span>Download Official PDF Pass</span>';
+        }
+      }
+    }
+
+    // --- Payment Proof Review & Rejection ---
+    function promptRejectPayment() {
+      const box = document.getElementById('rejectPaymentBox');
+      if (box) box.classList.remove('hidden');
+      const input = document.getElementById('rejectPaymentReasonInput');
+      if (input) input.focus();
+    }
+
+    function cancelRejectPaymentPrompt() {
+      const box = document.getElementById('rejectPaymentBox');
+      if (box) box.classList.add('hidden');
+      const input = document.getElementById('rejectPaymentReasonInput');
+      if (input) input.value = '';
+    }
+
+    async function executeRejectPayment() {
+      if (!currentActiveTeamId || !adminToken) return;
+      const reason = document.getElementById('rejectPaymentReasonInput')?.value?.trim();
+      if (!reason || reason.length < 3) {
+        alert("Please provide a specific reason for rejecting the payment screenshot (e.g. UTR illegible, transfer amount mismatch).");
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/admin/registrations/${encodeURIComponent(currentActiveTeamId)}/reject-payment`, {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + adminToken,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ reason: reason })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert("Payment proof rejected. The participant has been notified and can submit a replacement screenshot.");
+          cancelRejectPaymentPrompt();
+          refreshDashboardData();
+          openInspectionDrawer(currentActiveTeamId);
+        } else {
+          alert(data.error || "Failed to reject payment proof.");
+        }
+      } catch (err) {
+        alert("Network error rejecting payment proof.");
+      }
+    }
+
+    // --- Lightbox Modal for Payment Screenshot ---
+    function openProofLightbox(url, title, teamId) {
+      const modal = document.getElementById('proofLightboxModal');
+      const img = document.getElementById('lightboxImg');
+      const newTab = document.getElementById('lightboxNewTabBtn');
+      const dlBtn = document.getElementById('lightboxDownloadBtn');
+      const titleEl = document.getElementById('lightboxTitle');
+
+      const targetId = teamId || currentActiveTeamId || '';
+      const authParam = adminToken ? `?token=${encodeURIComponent(adminToken)}&t=${Date.now()}` : `?t=${Date.now()}`;
+      
+      let directUrl = url;
+      if (!directUrl && targetId) {
+        directUrl = `/api/admin/registrations/${encodeURIComponent(targetId)}/proof${authParam}`;
+      } else if (directUrl) {
+        if (!directUrl.includes('token=') && adminToken) {
+          directUrl += (directUrl.includes('?') ? '&' : '?') + `token=${encodeURIComponent(adminToken)}&t=${Date.now()}`;
+        }
+      } else {
+        directUrl = document.getElementById('drawerProofImg')?.src;
+      }
+      if (!directUrl) return;
+
+      const fallbackUrl = targetId ? `/api/ticket/${encodeURIComponent(targetId)}/proof?t=${Date.now()}` : directUrl;
+
+      if (img) {
+        img.onerror = function() {
+          this.onerror = null;
+          this.src = fallbackUrl;
+        };
+        img.src = directUrl;
+      }
+      if (newTab) newTab.href = directUrl;
+      if (dlBtn) {
+        dlBtn.href = directUrl;
+        dlBtn.setAttribute('download', `SUPERNOVA_PAYMENT_${targetId || 'PROOF'}.jpg`);
+      }
+      if (titleEl) titleEl.innerText = title || `PAYMENT PROOF // ${targetId || ''}`;
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeProofLightbox() {
+      const modal = document.getElementById('proofLightboxModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    // --- Organizer QR Code Configuration ---
+    let selectedNewQrBase64 = null;
+
+    function openQrConfigModal() {
+      fetch('/api/organizer-qr')
+        .then(r => r.json())
+        .then(cfg => {
+          const img = document.getElementById('modalCurrentQrImg');
+          const ben = document.getElementById('modalBeneficiaryText');
+          const upi = document.getElementById('modalUpiText');
+          const qrUrl = cfg.image_url || cfg.qr_url;
+          if (img && qrUrl) img.src = qrUrl + '?t=' + Date.now();
+          const benName = cfg.beneficiary_name || cfg.beneficiary;
+          if (ben && benName) ben.innerText = benName;
+          if (upi && cfg.upi_id) upi.innerText = cfg.upi_id;
+        })
+        .catch(() => {});
+      clearModalQrSelection();
+      document.getElementById('qrConfigModal').classList.remove('hidden');
+    }
+
+    function closeQrConfigModal() {
+      document.getElementById('qrConfigModal').classList.add('hidden');
+    }
+
+    function handleModalQrSelect(e) {
+      const file = e?.target?.files?.[0] || e?.dataTransfer?.files?.[0];
+      if (!file) return;
+
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      const ext = file.name.split('.').pop().toLowerCase();
+      const validExts = ['jpg', 'jpeg', 'png', 'webp'];
+      if (!validTypes.includes(file.type) && !validExts.includes(ext)) {
+        alert("Only JPEG, PNG, or WebP images are supported.");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert("File size exceeds 5 MB limit.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        selectedNewQrBase64 = evt.target.result;
+        const previewBox = document.getElementById('modalQrPreviewBox');
+        const previewImg = document.getElementById('modalQrPreviewImg');
+        const previewName = document.getElementById('modalQrPreviewName');
+        const btn = document.getElementById('btnSaveOrganizerQr');
+
+        if (previewImg) previewImg.src = selectedNewQrBase64;
+        if (previewName) previewName.innerText = file.name;
+        if (previewBox) previewBox.classList.remove('hidden');
+        if (btn) {
+          btn.disabled = false;
+          btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearModalQrSelection() {
+      selectedNewQrBase64 = null;
+      const input = document.getElementById('modalQrFileInput');
+      if (input) input.value = '';
+      const previewBox = document.getElementById('modalQrPreviewBox');
+      if (previewBox) previewBox.classList.add('hidden');
+      const btn = document.getElementById('btnSaveOrganizerQr');
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+      }
+      const alertEl = document.getElementById('modalQrAlert');
+      if (alertEl) alertEl.classList.add('hidden');
+    }
+
+    async function saveNewOrganizerQr() {
+      if (!selectedNewQrBase64 || !adminToken) return;
+      const btn = document.getElementById('btnSaveOrganizerQr');
+      const alertEl = document.getElementById('modalQrAlert');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">sync</span><span>Uploading...</span>';
+
+      try {
+        const res = await fetch('/api/admin/organizer-qr', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + adminToken,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ image: selectedNewQrBase64 })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          if (alertEl) {
+            alertEl.className = 'p-2.5 rounded bg-emerald-950 text-emerald-300 text-xs font-mono';
+            alertEl.innerText = data.message || 'Organizer QR code updated successfully!';
+            alertEl.classList.remove('hidden');
+          }
+          const img = document.getElementById('modalCurrentQrImg');
+          if (img) img.src = '/api/organizer-qr/image?t=' + Date.now();
+          setTimeout(() => {
+            closeQrConfigModal();
+          }, 1500);
+        } else {
+          if (alertEl) {
+            alertEl.className = 'p-2.5 rounded bg-red-950 text-red-300 text-xs font-mono';
+            alertEl.innerText = data.error || 'Failed to update QR code.';
+            alertEl.classList.remove('hidden');
+          }
+          btn.disabled = false;
+        }
+      } catch (err) {
+        if (alertEl) {
+          alertEl.className = 'p-2.5 rounded bg-red-950 text-red-300 text-xs font-mono';
+          alertEl.innerText = 'Network error saving QR code.';
+          alertEl.classList.remove('hidden');
+        }
+        btn.disabled = false;
+      } finally {
+        btn.innerHTML = '<span class="material-symbols-outlined text-sm">save</span><span>SAVE AS OFFICIAL QR</span>';
+      }
+    }
+  </script>
+</body>
+</html>
