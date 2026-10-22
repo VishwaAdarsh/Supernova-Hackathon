@@ -14,6 +14,7 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 from datetime import datetime, timezone
+from urllib.parse import urlparse, urlunparse
 from contextlib import contextmanager
 
 try:
@@ -59,14 +60,41 @@ def get_database_url():
     # Normalize postgres:// scheme for psycopg2 compatibility
     if url.startswith('postgres://'):
         url = 'postgresql://' + url[len('postgres://'):]
+
+    # Auto-convert Supabase direct URL (IPv6 only) to IPv4 Supavisor connection pooler
+    # This prevents [Errno 101] Network is unreachable on Render, AWS, and IPv4-only hosts
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname or ''
+        m_supa = re.match(r'^db\.([a-z0-9]+)\.supabase\.co$', hostname)
+        if m_supa:
+            project_ref = m_supa.group(1)
+            region = os.environ.get('SUPABASE_REGION', 'ap-northeast-1').strip()
+            pooler_host = f"aws-0-{region}.pooler.supabase.com"
+            username = parsed.username or 'postgres'
+            if not username.endswith(f".{project_ref}"):
+                username = f"{username}.{project_ref}"
+            password = parsed.password or ''
+            pooler_port = parsed.port if (parsed.port and parsed.port != 5432) else 6543
+            netloc = f"{username}:{password}@{pooler_host}:{pooler_port}" if password else f"{username}@{pooler_host}:{pooler_port}"
+            path = parsed.path or '/postgres'
+            query = parsed.query or 'sslmode=require'
+            if 'sslmode' not in query:
+                query += '&sslmode=require'
+            url = urlunparse((parsed.scheme, netloc, path, parsed.params, query, parsed.fragment))
+    except Exception as e:
+        print(f"[DATABASE WARNING] Could not parse/transform DATABASE_URL: {e}")
+
     # Ensure sslmode is present if connecting to remote Supabase/Render Postgres
-    if 'sslmode' not in url and ('supabase' in url or 'render' in url):
+    if 'sslmode' not in url and ('supabase' in url or 'render' in url or 'pooler' in url):
         sep = '&' if '?' in url else '?'
         url = f"{url}{sep}sslmode=require"
     return url
 
-def is_postgres():
-    """True if configured to use PostgreSQL and driver is available."""
+def is_postgres(conn=None):
+    """True if connection is PostgreSQL, or if PostgreSQL is configured and driver is available."""
+    if conn is not None:
+        return getattr(conn, 'is_postgres', False)
     return bool(get_database_url()) and HAS_PSYCOPG2
 
 def get_supabase_credentials():
@@ -207,6 +235,8 @@ class PostgresCursorWrapper:
 
 class PostgresConnectionWrapper:
     """Wraps a psycopg2 connection to mimic sqlite3.Connection context behavior."""
+    is_postgres = True
+
     def __init__(self, conn):
         self._conn = conn
 

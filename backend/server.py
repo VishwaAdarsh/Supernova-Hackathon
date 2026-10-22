@@ -196,8 +196,8 @@ def resolve_public_base_url(headers=None):
 
 def init_and_migrate_db():
     """Initializes the database with safe additive schema migrations (PostgreSQL or SQLite)."""
-    if is_postgres():
-        with connect() as db:
+    with connect() as db:
+        if getattr(db, 'is_postgres', False):
             db.execute('''
             CREATE TABLE IF NOT EXISTS teams (
                 id TEXT PRIMARY KEY,
@@ -279,9 +279,9 @@ def init_and_migrate_db():
             CREATE UNIQUE INDEX IF NOT EXISTS idx_members_unique_email 
             ON members(email) WHERE email IS NOT NULL AND email != '';
             ''')
-        return
+            return
 
-    with connect() as db:
+        # SQLite fallback / local environment schema initialization
         db.executescript('''
         CREATE TABLE IF NOT EXISTS teams (
             id TEXT PRIMARY KEY,
