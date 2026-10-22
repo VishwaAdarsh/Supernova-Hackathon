@@ -60,7 +60,7 @@ def generate_pass_pdf(team, members, base_url=None) -> bytes:
     - Cyberpunk Nova Mascot holding the glowing delta holographic icon
     - 3 Info cards: Date, Venue, and dynamic Selected Track
     - Team details panel: Team Name, Size (Duo/Trio), Lead Member, College, and Members roster
-    - Coordinator & Convenor signatures with center motto
+    - Coordinator (Deepak Sharma) & Chairperson (Karan Manikandan) signatures with center motto
     - Right-side verification stub:
       * High-contrast scannable QR code opening the live deployed website
       * Dynamic Registration ID
