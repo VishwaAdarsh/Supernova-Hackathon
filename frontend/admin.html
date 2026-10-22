@@ -68,6 +68,10 @@
       <div id="authHeaderControls" class="hidden flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span class="text-xs font-mono text-emerald-400 font-semibold uppercase" id="headerUserLabel">admin</span>
+        <span id="storageTierBadge" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#170B10] border border-[#153EBD] text-[11px] font-mono text-cyan-400" title="Authoritative Database Storage">
+          <span class="material-symbols-outlined text-xs">database</span>
+          <span id="storageTierText">DB: Authoritative</span>
+        </span>
         <button onclick="adminLogout()" class="text-xs font-mono text-white bg-[#153EBD] hover:bg-[#2563FF] px-2.5 py-1 rounded transition-colors flex items-center gap-1">
           <span class="material-symbols-outlined text-sm">logout</span>
           <span class="hidden sm:inline">Logout</span>
@@ -625,9 +629,52 @@
       if (spinner) spinner.classList.add('animate-spin');
 
       try {
-        // 1. Fetch Summary Metrics
+        // Telemetry: Storage Persistence Diagnostics
+        try {
+          const diagRes = await fetch(apiUrl('/api/admin/diagnostics'), {
+            cache: 'no-store',
+            headers: {
+              'Authorization': 'Bearer ' + adminToken,
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache'
+            }
+          });
+          if (diagRes.ok) {
+            const diagData = await diagRes.json();
+            const badge = document.getElementById('storageTierBadge');
+            const text = document.getElementById('storageTierText');
+            if (badge && text) {
+              badge.classList.remove('hidden');
+              if (diagData.persistence_tier === 'SECURE_POSTGRESQL') {
+                badge.className = 'hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-950/80 border border-emerald-500/50 text-[11px] font-mono text-emerald-400';
+                text.innerText = 'Supabase PostgreSQL';
+                text.title = 'Permanent Cloud Database (' + (diagData.teams_count || 0) + ' teams stored)';
+              } else if (diagData.persistence_tier === 'SECURE_PERSISTENT_DISK') {
+                badge.className = 'hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-950/80 border border-emerald-500/50 text-[11px] font-mono text-emerald-400';
+                text.innerText = 'Persistent Disk SQLite';
+                text.title = 'Mounted Persistent Storage (' + (diagData.teams_count || 0) + ' teams stored)';
+              } else if (diagData.persistence_tier === 'UNSAFE_EPHEMERAL_CONTAINER') {
+                badge.className = 'hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-950/90 border border-amber-500 text-[11px] font-mono text-amber-300 animate-pulse';
+                text.innerText = '⚠️ Ephemeral Container Storage';
+                text.title = 'Warning: Redeploy will lose SQLite data! Set DATABASE_URL in Render.';
+              } else {
+                badge.className = 'hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#170B10] border border-[#153EBD] text-[11px] font-mono text-cyan-300';
+                text.innerText = 'Local SQLite (' + (diagData.teams_count || 0) + ' teams)';
+              }
+            }
+          }
+        } catch (diagErr) {
+          console.warn('Persistence telemetry fetch warning:', diagErr);
+        }
+
+        // 1. Fetch Summary Metrics with no-cache guarantee
         const dashRes = await fetch(apiUrl('/api/admin/dashboard'), {
-          headers: { 'Authorization': 'Bearer ' + adminToken }
+          cache: 'no-store',
+          headers: {
+            'Authorization': 'Bearer ' + adminToken,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
         });
         if (dashRes.status === 401) {
           adminLogout();
@@ -651,9 +698,14 @@
           exportTotalBadge.innerText = `${sum.total_teams || 0} TEAMS REGISTERED`;
         }
 
-        // 2. Fetch Live Registration Records
+        // 2. Fetch Live Registration Records with no-cache guarantee
         const listRes = await fetch(apiUrl('/api/admin/registrations'), {
-          headers: { 'Authorization': 'Bearer ' + adminToken }
+          cache: 'no-store',
+          headers: {
+            'Authorization': 'Bearer ' + adminToken,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
         });
         if (!listRes.ok) throw new Error('Registrations API error: ' + listRes.status);
 
