@@ -251,8 +251,8 @@ def generate_pass_pdf(team, members, base_url=None) -> bytes:
     c.setFont('Helvetica-Bold', 26)
     c.drawString(340, height - 120, "✦")
 
-    # QUANTUM HACK 2026 Subtitle
-    c.setFillColor(HexColor('#00DFFF'))
+    # QUANTUM HACK 2026 Subtitle in bright white matching reference design
+    c.setFillColor(HexColor('#ffffff'))
     c.setFont('Helvetica-Bold', 17)
     c.drawString(44, height - 156, "QUANTUM HACK 2026")
 
@@ -297,15 +297,33 @@ def generate_pass_pdf(team, members, base_url=None) -> bytes:
         c.setLineWidth(0.8)
         c.roundRect(px + 8, pill_y + 7, 30, 30, 6, fill=1, stroke=1)
 
-        # Icon Symbol
-        c.setFillColor(HexColor('#00E5FF'))
-        c.setFont('Helvetica-Bold', 12)
+        # Vector Icon Symbol
         if label == "DATE":
-            c.drawString(px + 17, pill_y + 17, "D")
+            c.setStrokeColor(HexColor('#00E5FF'))
+            c.setLineWidth(1)
+            c.roundRect(px + 15, pill_y + 13, 16, 16, 2, fill=0, stroke=1)
+            c.line(px + 15, pill_y + 24, px + 31, pill_y + 24)
+            c.setFillColor(HexColor('#00E5FF'))
+            c.rect(px + 18, pill_y + 27, 2, 3, fill=1, stroke=0)
+            c.rect(px + 26, pill_y + 27, 2, 3, fill=1, stroke=0)
+            c.circle(px + 19, pill_y + 19, 1, fill=1, stroke=0)
+            c.circle(px + 23, pill_y + 19, 1, fill=1, stroke=0)
+            c.circle(px + 27, pill_y + 19, 1, fill=1, stroke=0)
         elif label == "VENUE":
-            c.drawString(px + 18, pill_y + 17, "V")
+            c.setFillColor(HexColor('#00E5FF'))
+            c.circle(px + 23, pill_y + 23, 5, fill=1, stroke=0)
+            p_pin = c.beginPath()
+            p_pin.moveTo(px + 19, pill_y + 21)
+            p_pin.lineTo(px + 27, pill_y + 21)
+            p_pin.lineTo(px + 23, pill_y + 13)
+            p_pin.close()
+            c.drawPath(p_pin, fill=1, stroke=0)
+            c.setFillColor(HexColor('#0a2048'))
+            c.circle(px + 23, pill_y + 23, 2, fill=1, stroke=0)
         else:
-            c.drawString(px + 14, pill_y + 17, "</>")
+            c.setFillColor(HexColor('#00E5FF'))
+            c.setFont('Helvetica-Bold', 11)
+            c.drawCentredString(px + 23, pill_y + 18, "</>")
 
         # Label & Values
         c.setFillColor(HexColor('#38BDF8'))
@@ -428,7 +446,7 @@ def generate_pass_pdf(team, members, base_url=None) -> bytes:
 
     c.setFillColor(HexColor('#ffffff'))
     c.setFont('Helvetica-Bold', 8)
-    c.drawRightString(760, sig_y + 3, "CHAIRPERSON")
+    c.drawRightString(760, sig_y + 3, "EVENT CONVENOR")
     c.setFillColor(HexColor('#7dd3fc'))
     c.setFont('Helvetica', 6.5)
     c.drawRightString(760, sig_y - 7, "SUPERNOVA 2026")
@@ -451,10 +469,10 @@ def generate_pass_pdf(team, members, base_url=None) -> bytes:
     c.setLineWidth(0.8)
     c.line(800, height - 46, 968, height - 46)
 
-    # Scannable High-Contrast QR Code
+    # Scannable High-Contrast QR Code (opens the deployed SUPERNOVA website homepage directly)
     try:
         target_base = resolve_pass_base_url(base_url)
-        qr_url = f"{target_base}/?ref={team_id}"
+        qr_url = target_base
         
         qr = qrcode.QRCode(box_size=4, border=1)
         qr.add_data(qr_url)
@@ -549,21 +567,53 @@ def generate_pass_pdf(team, members, base_url=None) -> bytes:
     c.line(rc_x, rc_y - 12, rc_x + rc_w, rc_y - 12)
 
     chips = [
-        ("₹6,000", "TOTAL PRIZE POOL", "T"),
-        ("TOP 10", "INTERNSHIP SLOTS", "I"),
-        ("1-DAY INTENSIVE", "07:30 AM - 04:30 PM IST", "M")
+        ("₹6,000", "TOTAL PRIZE POOL", "trophy"),
+        ("TOP 10", "INTERNSHIP SLOTS", "users"),
+        ("1-DAY INTENSIVE", "07:30 AM - 04:30 PM IST", "cpu")
     ]
     cy = rc_y - 42
-    for val_c, sub_c, ic_char in chips:
+    for val_c, sub_c, icon_type in chips:
         # Icon box
         c.setFillColor(HexColor('#0a2048'))
         c.setStrokeColor(HexColor('#00E5FF'))
         c.setLineWidth(0.8)
         c.roundRect(rc_x + 4, cy, 22, 22, 4, fill=1, stroke=1)
 
-        c.setFillColor(HexColor('#00E5FF'))
-        c.setFont('Helvetica-Bold', 10)
-        c.drawCentredString(rc_x + 15, cy + 6, ic_char)
+        ix = rc_x + 4
+        iy = cy
+        if icon_type == "trophy":
+            c.setFillColor(HexColor('#00E5FF'))
+            c.setStrokeColor(HexColor('#00E5FF'))
+            c.setLineWidth(0.8)
+            p_tr = c.beginPath()
+            p_tr.moveTo(ix + 6, iy + 17)
+            p_tr.lineTo(ix + 16, iy + 17)
+            p_tr.lineTo(ix + 14, iy + 11)
+            p_tr.lineTo(ix + 8, iy + 11)
+            p_tr.close()
+            c.drawPath(p_tr, fill=1, stroke=0)
+            c.line(ix + 11, iy + 11, ix + 11, iy + 6)
+            c.line(ix + 8, iy + 6, ix + 14, iy + 6)
+        elif icon_type == "users":
+            c.setFillColor(HexColor('#00E5FF'))
+            c.circle(ix + 11, iy + 15, 2.5, fill=1, stroke=0)
+            p_us = c.beginPath()
+            p_us.moveTo(ix + 7, iy + 7)
+            p_us.lineTo(ix + 15, iy + 7)
+            p_us.lineTo(ix + 14, iy + 11)
+            p_us.lineTo(ix + 8, iy + 11)
+            p_us.close()
+            c.drawPath(p_us, fill=1, stroke=0)
+        else: # cpu
+            c.setStrokeColor(HexColor('#00E5FF'))
+            c.setFillColor(HexColor('#00E5FF'))
+            c.setLineWidth(0.8)
+            c.rect(ix + 7, iy + 7, 8, 8, fill=0, stroke=1)
+            c.rect(ix + 9, iy + 9, 4, 4, fill=1, stroke=0)
+            c.line(ix + 5, iy + 9, ix + 7, iy + 9)
+            c.line(ix + 5, iy + 13, ix + 7, iy + 13)
+            c.line(ix + 15, iy + 9, ix + 17, iy + 9)
+            c.line(ix + 15, iy + 13, ix + 17, iy + 13)
 
         c.setFillColor(HexColor('#ffffff'))
         c.setFont('Helvetica-Bold', 8.5)

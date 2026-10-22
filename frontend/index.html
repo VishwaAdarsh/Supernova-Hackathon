@@ -2606,7 +2606,7 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
                 </g>
               </svg>
             </div>
-            <div class="font-sans text-[19px] font-black text-[#00DFFF] tracking-[0.14em] uppercase -mt-0.5 filter drop-shadow-[0_0_10px_rgba(0,223,255,0.7)]">QUANTUM HACK 2026</div>
+            <div class="font-sans text-[19px] font-black text-white tracking-[0.14em] uppercase -mt-0.5 filter drop-shadow-[0_0_10px_rgba(0,223,255,0.7)]">QUANTUM HACK 2026</div>
             <div class="font-mono text-[9px] text-[#38BDF8] tracking-[0.24em] uppercase mt-1 font-bold">HACKATHON // INNOVATION // REAL IMPACT</div>
           </div>
 
@@ -2716,7 +2716,7 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
               <svg width="115" height="4" class="my-1 block">
                 <line x1="0" y1="2" x2="115" y2="2" stroke="#00DFFF" stroke-width="1.5"/>
               </svg>
-              <div class="text-white font-mono text-[8.5px] font-bold uppercase tracking-wider">CHAIRPERSON</div>
+              <div class="text-white font-mono text-[8.5px] font-bold uppercase tracking-wider">EVENT CONVENOR</div>
               <div class="text-[#7dd3fc] font-mono text-[7px] uppercase tracking-wide">SUPERNOVA 2026</div>
               <div class="text-[#7dd3fc] font-mono text-[7px] uppercase tracking-wide">TOLANI COLLEGE</div>
             </div>
@@ -4643,8 +4643,10 @@ Tolani College of Commerce, 149-C, Sher-E-Punjab Society, Mahakali Caves Road, A
       }
 
       // Generate Scannable QR Code (pointing to official verified ticket lookup)
-      const verifyUrl = window.location.origin + '/?ref=' + encodeURIComponent(currentTicketData.id);
-      generatePassQRCode(verifyUrl);
+      const websiteUrl = window.location.origin && !window.location.origin.includes('localhost')
+        ? window.location.origin
+        : 'https://supernova-hackathon-frontend.vercel.app';
+      generatePassQRCode(websiteUrl);
     }
 
     function generatePassQRCode(url) {
