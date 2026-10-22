@@ -14,7 +14,7 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 from datetime import datetime, timezone
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse, urlunparse, unquote, quote
 from contextlib import contextmanager
 
 try:
@@ -55,69 +55,150 @@ def sanitize_db_url(url: str) -> str:
     if not url:
         return "<none>"
     try:
-        parsed = urlparse(url)
-        netloc = parsed.netloc
-        if '@' in netloc:
-            creds, host_port = netloc.split('@', 1)
-            user = creds.split(':', 1)[0]
-            masked_netloc = f"{user}:***@{host_port}"
+        url_clean = url.strip().strip('"\'')
+        if '://' in url_clean:
+            scheme, rest = url_clean.split('://', 1)
         else:
-            masked_netloc = netloc
-        return urlunparse((parsed.scheme, masked_netloc, parsed.path, '', '', ''))
+            scheme, rest = 'postgresql', url_clean
+
+        path_part = ''
+        if '/' in rest:
+            rest, path_part = rest.split('/', 1)
+            path_part = '/' + path_part
+
+        if '@' in rest:
+            creds, host_part = rest.rsplit('@', 1)
+            user = creds.split(':', 1)[0] if ':' in creds else creds
+            user = user.strip()
+            host_clean = host_part.strip().lstrip('@').strip()
+            return f"{scheme}://{user}:***@{host_clean}{path_part}"
+        return f"{scheme}://{rest}{path_part}"
     except Exception:
         return "<masked_url>"
 
 
-def get_database_url() -> str | None:
+def get_db_connection_params() -> dict | None:
     """
-    Returns sanitized PostgreSQL connection string if configured in environment.
-    Automatically normalizes postgres:// scheme and routes direct IPv6 Supabase hosts
-    through the IPv4 Supavisor connection pooler.
+    Extracts structured PostgreSQL connection parameters.
+    Handles:
+    - Passwords containing special characters (@, #, ?, %, spaces)
+    - Accidental duplicate @ or stray whitespace from copy-pasting
+    - IPv6 Supabase direct host to IPv4 Supavisor pooler translation
+    - Explicit PGHOST, PGUSER, PGPASSWORD, PGPORT, PGDATABASE env vars
     """
-    url = (
+    # 1. Check explicit PG* environment variables first
+    pghost = os.environ.get('PGHOST')
+    if pghost:
+        return {
+            'host': pghost.strip(),
+            'port': int(os.environ.get('PGPORT', 5432)),
+            'user': os.environ.get('PGUSER', 'postgres').strip(),
+            'password': os.environ.get('PGPASSWORD', ''),
+            'dbname': os.environ.get('PGDATABASE', 'postgres').strip(),
+            'sslmode': os.environ.get('PGSSLMODE', 'require').strip(),
+            'connect_timeout': 15
+        }
+
+    # 2. Check connection URL
+    raw_url = (
         os.environ.get('DATABASE_URL') or 
         os.environ.get('SUPABASE_DB_URL') or 
         os.environ.get('POSTGRES_URL')
     )
+    if not raw_url:
+        return None
+    url = raw_url.strip().strip('"\'')
     if not url:
         return None
-    url = url.strip()
-    if not url:
+
+    # Strip scheme
+    m = re.match(r'^(?:postgres(?:ql)?):\/\/(.*)$', url, re.IGNORECASE)
+    if not m:
         return None
+    rest = m.group(1)
 
-    # Normalize postgres:// scheme for psycopg2 compatibility
-    if url.startswith('postgres://'):
-        url = 'postgresql://' + url[len('postgres://'):]
+    # Separate query parameters (?sslmode=require etc)
+    sslmode = 'require'
+    if '?' in rest:
+        rest, query_part = rest.split('?', 1)
+        if 'sslmode=' in query_part:
+            m_ssl = re.search(r'sslmode=([a-zA-Z0-9_\-]+)', query_part)
+            if m_ssl:
+                sslmode = m_ssl.group(1)
 
-    # Auto-convert Supabase direct URL (IPv6 only) to IPv4 Supavisor connection pooler
-    # This prevents [Errno 101] Network is unreachable on Render and IPv4-only hosts
-    try:
-        parsed = urlparse(url)
-        hostname = parsed.hostname or ''
-        m_supa = re.match(r'^db\.([a-z0-9]+)\.supabase\.co$', hostname)
-        if m_supa:
-            project_ref = m_supa.group(1)
-            region = os.environ.get('SUPABASE_REGION', 'ap-northeast-1').strip()
-            pooler_host = f"aws-0-{region}.pooler.supabase.com"
-            username = parsed.username or 'postgres'
-            if not username.endswith(f".{project_ref}"):
-                username = f"{username}.{project_ref}"
-            password = parsed.password or ''
-            pooler_port = parsed.port if (parsed.port and parsed.port != 5432) else 6543
-            netloc = f"{username}:{password}@{pooler_host}:{pooler_port}" if password else f"{username}@{pooler_host}:{pooler_port}"
-            path = parsed.path or '/postgres'
-            query = parsed.query or 'sslmode=require'
-            if 'sslmode' not in query:
-                query += '&sslmode=require'
-            url = urlunparse((parsed.scheme, netloc, path, parsed.params, query, parsed.fragment))
-    except Exception as e:
-        print(f"[DATABASE WARNING] Could not parse/transform DATABASE_URL: {e}")
+    # Separate dbname / path
+    dbname = 'postgres'
+    if '/' in rest:
+        rest, path = rest.split('/', 1)
+        if path.strip():
+            dbname = path.strip()
 
-    # Ensure sslmode is present if connecting to remote Supabase/Render Postgres
-    if 'sslmode' not in url and ('supabase' in url or 'render' in url or 'pooler' in url):
-        sep = '&' if '?' in url else '?'
-        url = f"{url}{sep}sslmode=require"
-    return url
+    # Split authority by the LAST '@' to safely handle passwords with '@'
+    if '@' in rest:
+        creds, host_part = rest.rsplit('@', 1)
+    else:
+        creds = ''
+        host_part = rest
+
+    # Clean host_part: strip whitespace and any leading '@' left from typos
+    host_part = host_part.strip().lstrip('@').strip()
+
+    # Parse port if present
+    if ':' in host_part:
+        host, port_str = host_part.rsplit(':', 1)
+        try:
+            port = int(port_str.strip())
+        except ValueError:
+            port = 5432
+    else:
+        host = host_part
+        port = 5432
+
+    # Parse user and password from creds
+    user = 'postgres'
+    password = ''
+    if creds:
+        if ':' in creds:
+            user, password = creds.split(':', 1)
+        else:
+            user = creds
+
+    user = user.strip()
+    # Unquote password in case it was partially URL-encoded, then strip stray whitespace
+    password = unquote(password.strip())
+
+    # Supabase direct IPv6 -> IPv4 pooler conversion
+    m_supa = re.match(r'^db\.([a-z0-9]+)\.supabase\.co$', host)
+    if m_supa:
+        project_ref = m_supa.group(1)
+        region = os.environ.get('SUPABASE_REGION', 'ap-northeast-1').strip()
+        host = f"aws-0-{region}.pooler.supabase.com"
+        port = 6543
+        if not user.endswith(f".{project_ref}"):
+            user = f"{user}.{project_ref}"
+
+    return {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'dbname': dbname,
+        'sslmode': sslmode,
+        'connect_timeout': 15
+    }
+
+
+def get_database_url() -> str | None:
+    """
+    Returns properly sanitized and URL-encoded PostgreSQL connection string
+    if configured in environment.
+    """
+    params = get_db_connection_params()
+    if not params:
+        return None
+    enc_pass = quote(params['password'], safe='')
+    user_part = f"{params['user']}:{enc_pass}@" if params['password'] else f"{params['user']}@"
+    return f"postgresql://{user_part}{params['host']}:{params['port']}/{params['dbname']}?sslmode={params['sslmode']}"
 
 
 def is_postgres(conn=None) -> bool:
@@ -426,19 +507,30 @@ def connect():
        Uses SQLite on the configured persistent path (or local development path).
        Both wrappers guarantee clean commit and connection closure on block exit.
     """
-    db_url = get_database_url()
-    if db_url:
+    params = get_db_connection_params()
+    if params:
         if not HAS_PSYCOPG2:
-            raise DatabaseError("DATABASE_URL is set in environment, but psycopg2 driver is not installed.")
+            raise DatabaseError("PostgreSQL database is configured in environment, but psycopg2 driver is not installed.")
         try:
-            conn = psycopg2.connect(db_url, connect_timeout=15)
+            # Connecting with explicit keyword arguments bypasses URI parsing
+            # and effortlessly handles passwords containing @, #, ?, %, spaces, etc.
+            conn = psycopg2.connect(**params)
             return PostgresConnectionWrapper(conn)
-        except Exception as e:
-            sanitized = sanitize_db_url(db_url)
-            err_msg = f"Authoritative PostgreSQL connection failed to [{sanitized}]: {e}"
+        except Exception as e_kwargs:
+            # Secondary fallback: try with re-encoded clean URL
+            try:
+                clean_url = get_database_url()
+                if clean_url:
+                    conn = psycopg2.connect(clean_url, connect_timeout=15)
+                    return PostgresConnectionWrapper(conn)
+            except Exception:
+                pass
+
+            sanitized = sanitize_db_url(get_database_url() or '')
+            err_msg = f"Authoritative PostgreSQL connection failed to [{sanitized}]: {e_kwargs}"
             print(f"[CRITICAL DATABASE ERROR] {err_msg}")
             # FAIL SAFELY! Never silently fall back to an ephemeral SQLite database.
-            raise DatabaseError(err_msg) from e
+            raise DatabaseError(err_msg) from e_kwargs
 
     # SQLite connection
     try:
