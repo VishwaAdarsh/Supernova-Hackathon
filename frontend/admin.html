@@ -634,9 +634,7 @@
           const diagRes = await fetch(apiUrl('/api/admin/diagnostics'), {
             cache: 'no-store',
             headers: {
-              'Authorization': 'Bearer ' + adminToken,
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              'Pragma': 'no-cache'
+              'Authorization': 'Bearer ' + adminToken
             }
           });
           if (diagRes.ok) {
@@ -671,9 +669,7 @@
         const dashRes = await fetch(apiUrl('/api/admin/dashboard'), {
           cache: 'no-store',
           headers: {
-            'Authorization': 'Bearer ' + adminToken,
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
+            'Authorization': 'Bearer ' + adminToken
           }
         });
         if (dashRes.status === 401) {
@@ -702,9 +698,7 @@
         const listRes = await fetch(apiUrl('/api/admin/registrations'), {
           cache: 'no-store',
           headers: {
-            'Authorization': 'Bearer ' + adminToken,
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
+            'Authorization': 'Bearer ' + adminToken
           }
         });
         if (!listRes.ok) throw new Error('Registrations API error: ' + listRes.status);
