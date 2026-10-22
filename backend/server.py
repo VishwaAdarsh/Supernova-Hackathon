@@ -23,7 +23,7 @@ from database import (
     get_database_url, init_and_migrate_db, get_database_diagnostics, SQLITE_PATH
 )
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, date, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit, unquote
 
@@ -275,9 +275,26 @@ def send_confirmation_email(team, members, force_resend=False, base_url=None):
     return send_email_notification('FINAL_CONFIRMATION', team, members, force_resend=force_resend, base_url=base_url)
 
 
+def json_serial(obj):
+    """JSON serializer for objects not serializable by default json code (datetime, memoryview, bytes, etc.)."""
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    if isinstance(obj, memoryview):
+        return base64.b64encode(bytes(obj)).decode('ascii')
+    if isinstance(obj, bytes):
+        return base64.b64encode(obj).decode('ascii')
+    return str(obj)
+
+
 class Server(BaseHTTPRequestHandler):
     def send_json(self, status, data):
-        raw = json.dumps(data).encode('utf-8')
+        try:
+            raw = json.dumps(data, default=json_serial).encode('utf-8')
+        except Exception as e:
+            print(f"[JSON SERIALIZATION ERROR] {e}")
+            raw = json.dumps({'error': 'Server error serializing response.', 'details': str(e)}).encode('utf-8')
+            status = 500
+
         self.send_response(status)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0')
@@ -331,6 +348,14 @@ class Server(BaseHTTPRequestHandler):
         return data
 
     def do_GET(self):
+        try:
+            self._handle_GET()
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            self.send_json(500, {'error': 'Internal server error processing request.', 'details': str(e)})
+
+    def _handle_GET(self):
         parsed = urlsplit(self.path)
         path = parsed.path
         query = parse_qs(parsed.query)
@@ -968,6 +993,14 @@ class Server(BaseHTTPRequestHandler):
         self.wfile.write(raw)
 
     def do_POST(self):
+        try:
+            self._handle_POST()
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            self.send_json(500, {'error': 'Internal server error processing request.', 'details': str(e)})
+
+    def _handle_POST(self):
         path = urlsplit(self.path).path
 
         # ---------------------------------------------------------
@@ -1624,10 +1657,7 @@ def run_server():
     try:
         init_and_migrate_db()
     except Exception as e:
-        print(f"[FATAL DB INIT ERROR] Could not initialize database schema: {e}")
-        if get_database_url():
-            print("[CRITICAL] DATABASE_URL is configured but connection failed. Exiting to prevent ephemeral fallback.")
-            sys.exit(1)
+        print(f"[DATABASE INIT WARNING] Could not initialize database schema on startup: {e}")
 
     diag = get_database_diagnostics()
     print("=" * 72)
