@@ -610,7 +610,7 @@
       }
     }
 
-    function adminLogout() {
+    function adminLogout(reason = null) {
       if (adminToken) {
         fetch(apiUrl('/api/admin/logout'), {
           method: 'POST',
@@ -620,6 +620,14 @@
       adminToken = null;
       localStorage.removeItem('sn26_admin_token');
       showLogin();
+      if (reason) {
+        const errBox = document.getElementById('loginErrorAlert');
+        const errText = document.getElementById('loginErrorText');
+        if (errBox && errText) {
+          errText.innerText = reason;
+          errBox.classList.remove('hidden');
+        }
+      }
     }
 
     async function refreshDashboardData() {
@@ -673,7 +681,7 @@
           }
         });
         if (dashRes.status === 401) {
-          adminLogout();
+          adminLogout('Session expired or database reconnected. Please authenticate to sign in.');
           return;
         }
         if (!dashRes.ok) throw new Error('Dashboard API error: ' + dashRes.status);
