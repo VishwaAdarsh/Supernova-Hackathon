@@ -25,8 +25,17 @@ except ImportError:
     HAS_PSYCOPG2 = False
 
 ROOT = Path(__file__).resolve().parent.parent
-DATABASE_DIR = ROOT / 'database'
-SQLITE_PATH = (DATABASE_DIR / 'registrations.db') if (DATABASE_DIR / 'registrations.db').exists() else (ROOT / 'registrations.db')
+
+# Resolve SQLite database path (supports persistent disk mount via DATA_DIR or RENDER_DISK_PATH)
+custom_data_dir = os.environ.get('DATA_DIR') or os.environ.get('RENDER_DISK_PATH')
+if custom_data_dir:
+    DATABASE_DIR = Path(custom_data_dir).resolve()
+    DATABASE_DIR.mkdir(parents=True, exist_ok=True)
+    SQLITE_PATH = (DATABASE_DIR / 'registrations.db').resolve()
+else:
+    DATABASE_DIR = (ROOT / 'database').resolve()
+    DATABASE_DIR.mkdir(parents=True, exist_ok=True)
+    SQLITE_PATH = (DATABASE_DIR / 'registrations.db').resolve()
 
 # Unified exception classes
 class DatabaseError(Exception):
@@ -38,12 +47,23 @@ class IntegrityError(DatabaseError):
     pass
 
 def get_database_url():
-    """Returns PostgreSQL connection string if configured in environment."""
-    return (
+    """Returns sanitized PostgreSQL connection string if configured in environment."""
+    url = (
         os.environ.get('DATABASE_URL') or 
         os.environ.get('SUPABASE_DB_URL') or 
         os.environ.get('POSTGRES_URL')
     )
+    if not url:
+        return None
+    url = url.strip()
+    # Normalize postgres:// scheme for psycopg2 compatibility
+    if url.startswith('postgres://'):
+        url = 'postgresql://' + url[len('postgres://'):]
+    # Ensure sslmode is present if connecting to remote Supabase/Render Postgres
+    if 'sslmode' not in url and ('supabase' in url or 'render' in url):
+        sep = '&' if '?' in url else '?'
+        url = f"{url}{sep}sslmode=require"
+    return url
 
 def is_postgres():
     """True if configured to use PostgreSQL and driver is available."""
@@ -83,20 +103,45 @@ class PostgresCursorWrapper:
     def _convert_query(self, query):
         q = query.strip()
         # Handle SQLite-specific transaction statements
-        if q.upper().startswith('BEGIN IMMEDIATE'):
+        if q.upper().startswith('BEGIN IMMEDIATE') or q.upper() == 'BEGIN':
             q = 'BEGIN'
         # Replace ? with %s for psycopg2 parameter substitution
-        # Only replace ? when not inside string literals
         q = re.sub(r'\?', '%s', q)
         return q
 
+    def _convert_params(self, params):
+        if params is None:
+            return None
+        converted = []
+        for p in params:
+            if isinstance(p, (bytes, bytearray)):
+                converted.append(psycopg2.Binary(p))
+            else:
+                converted.append(p)
+        return tuple(converted) if isinstance(params, tuple) else converted
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            self._cursor.close()
+        except Exception:
+            pass
+
+    def __iter__(self):
+        cols = [desc[0] for desc in self._cursor.description] if self._cursor.description else []
+        for row in self._cursor:
+            yield HybridRow(row, cols)
+
     def execute(self, query, params=None):
         converted = self._convert_query(query)
+        converted_params = self._convert_params(params)
         try:
-            if params is None:
+            if converted_params is None:
                 self._cursor.execute(converted)
             else:
-                self._cursor.execute(converted, params)
+                self._cursor.execute(converted, converted_params)
             return self
         except psycopg2.IntegrityError as e:
             raise IntegrityError(str(e)) from e
@@ -105,8 +150,9 @@ class PostgresCursorWrapper:
 
     def executemany(self, query, seq_of_params):
         converted = self._convert_query(query)
+        converted_seq = [self._convert_params(p) for p in seq_of_params]
         try:
-            self._cursor.executemany(converted, seq_of_params)
+            self._cursor.executemany(converted, converted_seq)
             return self
         except psycopg2.IntegrityError as e:
             raise IntegrityError(str(e)) from e
@@ -114,18 +160,37 @@ class PostgresCursorWrapper:
             raise DatabaseError(str(e)) from e
 
     def fetchone(self):
+        if self._cursor.description is None:
+            return None
         row = self._cursor.fetchone()
         if row is None:
             return None
         cols = [desc[0] for desc in self._cursor.description]
         return HybridRow(row, cols)
 
+    def fetchmany(self, size=None):
+        if self._cursor.description is None:
+            return []
+        rows = self._cursor.fetchmany(size) if size is not None else self._cursor.fetchmany()
+        if not rows:
+            return []
+        cols = [desc[0] for desc in self._cursor.description]
+        return [HybridRow(r, cols) for r in rows]
+
     def fetchall(self):
+        if self._cursor.description is None:
+            return []
         rows = self._cursor.fetchall()
         if not rows:
             return []
         cols = [desc[0] for desc in self._cursor.description]
         return [HybridRow(r, cols) for r in rows]
+
+    def close(self):
+        try:
+            self._cursor.close()
+        except Exception:
+            pass
 
     @property
     def rowcount(self):
@@ -134,6 +199,10 @@ class PostgresCursorWrapper:
     @property
     def description(self):
         return self._cursor.description
+
+    @property
+    def lastrowid(self):
+        return getattr(self._cursor, 'lastrowid', None)
 
 
 class PostgresConnectionWrapper:
@@ -151,6 +220,9 @@ class PostgresConnectionWrapper:
             self._conn.commit()
         self._conn.close()
 
+    def cursor(self):
+        return PostgresCursorWrapper(self._conn.cursor())
+
     def execute(self, query, params=None):
         cur = self._conn.cursor()
         wrapper = PostgresCursorWrapper(cur)
@@ -161,6 +233,11 @@ class PostgresConnectionWrapper:
         wrapper = PostgresCursorWrapper(cur)
         return wrapper.executemany(query, seq_of_params)
 
+    def executescript(self, script):
+        with self._conn.cursor() as cur:
+            cur.execute(script)
+        self._conn.commit()
+
     def commit(self):
         self._conn.commit()
 
@@ -169,6 +246,14 @@ class PostgresConnectionWrapper:
 
     def close(self):
         self._conn.close()
+
+    @property
+    def row_factory(self):
+        return None
+
+    @row_factory.setter
+    def row_factory(self, val):
+        pass
 
 
 @contextmanager

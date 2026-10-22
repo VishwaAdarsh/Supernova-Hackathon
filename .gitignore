@@ -11,3 +11,5 @@ uploads/
 .system_generated/
 .vscode/
 .idea/
+
+backups/

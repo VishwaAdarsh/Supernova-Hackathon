@@ -18,7 +18,19 @@ TRACK_DISPLAY_NAMES = {
     'ai_ml': 'AI / ML System'
 }
 
-def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
+def resolve_pass_base_url(base_url=None):
+    """
+    Returns the canonical routable public URL for QR codes.
+    Falls back to official live production frontend if localhost or omitted.
+    """
+    env_url = os.environ.get('FRONTEND_URL') or os.environ.get('PUBLIC_URL') or os.environ.get('APP_URL')
+    if env_url:
+        return env_url.rstrip('/')
+    if base_url and 'localhost' not in base_url and '127.0.0.1' not in base_url:
+        return base_url.rstrip('/')
+    return "https://supernova-hackathon-frontend.vercel.app"
+
+def generate_pass_pdf(team, members, base_url=None) -> bytes:
     """
     Generates the official landscape SUPERNOVA 2026 Ticket Pass as a vector PDF.
     Matches the exact 1000x562 widescreen layout, cyan/electric blue neon palette,
@@ -28,15 +40,15 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
     width, height = 1000, 562
     c = canvas.Canvas(buf, pagesize=(width, height))
     
-    team_id = str(team.get('id', 'SN26-UNKNOWN'))
-    team_name = str(team.get('team_name') or team.get('leader_name') or 'Team Operatives')
-    leader_name = str(team.get('leader_name', 'Lead Operative'))
-    track_key = str(team.get('track', 'web')).lower()
+    team_id = str(team.get('id', 'SN26-UNKNOWN')).strip()
+    team_name = str(team.get('team_name') or team.get('leader_name') or 'Team Operatives').strip()
+    leader_name = str(team.get('leader_name', 'Lead Operative')).strip()
+    track_key = str(team.get('track', 'web')).lower().strip()
     track_label = TRACK_DISPLAY_NAMES.get(track_key, track_key.upper())
     team_size = int(team.get('team_size', len(members) or 2))
     size_label = '02 Members (Duo)' if team_size == 2 else '03 Members (Trio)'
     
-    college = str(team.get('college') or (members[0].get('college') if members else '') or 'Tolani College of Commerce & Science')
+    college = str(team.get('college') or (members[0].get('college') if members else '') or 'Tolani College of Commerce & Science').strip()
 
     c.setTitle(f"SUPERNOVA 2026 PASS // {team_id}")
     c.setAuthor("Tolani College of Commerce & Science - Dept of Data Science & IT")
@@ -52,8 +64,8 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
     c.setFillColor(HexColor('#030b20'))
     c.circle(420, 320, 180, fill=1, stroke=0)
 
-    # --- 2. Outer Chamfered Cyber Frame ---
-    c.setStrokeColor(HexColor('#00A3FF'))
+    # --- 2. Outer Chamfered Cyber Frame (#00DFFF matching website glow) ---
+    c.setStrokeColor(HexColor('#00DFFF'))
     c.setLineWidth(2)
     
     # Outer chamfered polygon with tear notches at x=780
@@ -95,7 +107,7 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
 
     # Inner Concentric Cyber Line
     c.setStrokeColor(HexColor('#00E5FF'))
-    c.setLineWidth(0.8)
+    c.setLineWidth(1)
     p_in = c.beginPath()
     p_in.moveTo(36, 16)
     p_in.lineTo(764, 16)
@@ -113,7 +125,7 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
     c.drawPath(p_in, fill=0, stroke=1)
 
     # Corner Sci-Fi Accent Brackets
-    c.setStrokeColor(HexColor('#00E5FF'))
+    c.setStrokeColor(HexColor('#00DFFF'))
     c.setLineWidth(1.5)
     # Top-Left
     c.line(8, 44, 8, 26)
@@ -133,14 +145,14 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
     c.line(992, 536, 992, 518)
 
     # Top/Bottom Tech Accent Rects
-    c.setFillColor(HexColor('#00E5FF'))
+    c.setFillColor(HexColor('#00DFFF'))
     c.rect(230, height - 13, 30, 3, fill=1, stroke=0)
     c.rect(850, height - 13, 25, 3, fill=1, stroke=0)
     c.rect(230, 10, 30, 3, fill=1, stroke=0)
     c.rect(850, 10, 25, 3, fill=1, stroke=0)
 
     # Perforated Vertical Tear Line
-    c.setStrokeColor(HexColor('#00A3FF'))
+    c.setStrokeColor(HexColor('#00DFFF'))
     c.setLineWidth(1.5)
     c.setDash([5, 5])
     c.line(780, 20, 780, height - 20)
@@ -148,12 +160,18 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
 
     # --- 3. LEFT SECTION: Header Bar ---
     # Tolani College Logo
-    logo_path = (FRONTEND_DIR / 'tolani-logo.jpg') if (FRONTEND_DIR / 'tolani-logo.jpg').is_file() else (ROOT / 'tolani-logo.jpg')
-    if logo_path.is_file():
+    logo_candidates = [
+        FRONTEND_DIR / 'tolani-logo.jpg',
+        ROOT / 'tolani-logo.jpg',
+        ROOT / 'assets' / 'tolani-logo.jpg',
+        FRONTEND_DIR / 'assets' / 'tolani-logo.jpg'
+    ]
+    logo_path = next((p for p in logo_candidates if p.is_file()), None)
+    if logo_path:
         try:
             c.setFillColor(HexColor('#ffffff'))
             c.roundRect(44, height - 60, 44, 44, 8, fill=1, stroke=0)
-            c.setStrokeColor(HexColor('#00E5FF'))
+            c.setStrokeColor(HexColor('#00DFFF'))
             c.setLineWidth(1)
             c.roundRect(44, height - 60, 44, 44, 8, fill=0, stroke=1)
             c.drawImage(str(logo_path), 46, height - 58, 40, 40, preserveAspectRatio=True, mask='auto')
@@ -176,7 +194,7 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
     c.drawString(98, height - 55, "PRESENTS")
 
     # Header Right
-    c.setFillColor(HexColor('#00A3FF'))
+    c.setFillColor(HexColor('#00DFFF'))
     c.setFont('Helvetica-Bold', 8)
     c.drawRightString(760, height - 32, "HACK // LEARN // BUILD // CONNECT")
     c.setFillColor(HexColor('#ffffff'))
@@ -184,13 +202,12 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
     c.drawRightString(760, height - 46, "THINK BEYOND. BUILD FEARLESSLY.")
 
     # Header divider
-    c.setStrokeColor(HexColor('#00A3FF'))
+    c.setStrokeColor(HexColor('#00DFFF'))
     c.setLineWidth(0.8)
     c.line(44, height - 68, 760, height - 68)
 
     # --- 4. Hero Title Area & HUD Line ---
-    # HUD Sci-Fi Line Framing Supernova
-    c.setStrokeColor(HexColor('#00A3FF'))
+    c.setStrokeColor(HexColor('#00DFFF'))
     c.setLineWidth(1.2)
     p_hud = c.beginPath()
     p_hud.moveTo(44, height - 94)
@@ -202,7 +219,7 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
     p_hud.lineTo(530, height - 100)
     c.drawPath(p_hud, fill=0, stroke=1)
 
-    # Binary code stream (subtle vertical text behind mascot)
+    # Binary code stream
     c.setFillColor(HexColor('#00E5FF'))
     c.setFont('Courier', 6.5)
     matrix_lines = [
@@ -235,18 +252,23 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
     c.drawString(340, height - 120, "✦")
 
     # QUANTUM HACK 2026 Subtitle
-    c.setFillColor(HexColor('#00E5FF'))
+    c.setFillColor(HexColor('#00DFFF'))
     c.setFont('Helvetica-Bold', 17)
     c.drawString(44, height - 156, "QUANTUM HACK 2026")
 
     # Tagline
-    c.setFillColor(HexColor('#00A3FF'))
+    c.setFillColor(HexColor('#38BDF8'))
     c.setFont('Helvetica-Bold', 8)
     c.drawString(44, height - 172, "HACKATHON // INNOVATION // REAL IMPACT")
 
     # Cyber Mascot Artwork (assets/nova-avatar.png)
-    avatar_path = ROOT / 'assets' / 'nova-avatar.png'
-    if avatar_path.is_file():
+    avatar_candidates = [
+        ROOT / 'assets' / 'nova-avatar.png',
+        FRONTEND_DIR / 'assets' / 'nova-avatar.png',
+        FRONTEND_DIR / 'nova-avatar.png'
+    ]
+    avatar_path = next((p for p in avatar_candidates if p.is_file()), None)
+    if avatar_path:
         try:
             c.drawImage(str(avatar_path), 545, height - 325, 230, 250, preserveAspectRatio=True, mask='auto')
         except Exception:
@@ -265,7 +287,7 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
     for label, val1, val2, px in pills:
         # Card Background
         c.setFillColor(HexColor('#061433'))
-        c.setStrokeColor(HexColor('#00A3FF'))
+        c.setStrokeColor(HexColor('#00DFFF'))
         c.setLineWidth(1)
         c.roundRect(px, pill_y, pill_w, pill_h, 8, fill=1, stroke=1)
 
@@ -294,7 +316,7 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
         c.setFont('Helvetica-Bold', 9.5)
         c.drawString(px + 45, pill_y + 18, val1[:16])
 
-        c.setFillColor(HexColor('#00A3FF') if label == "DATE" else HexColor('#94a3b8'))
+        c.setFillColor(HexColor('#00E5FF') if label == "DATE" else HexColor('#94a3b8'))
         c.setFont('Helvetica', 7)
         c.drawString(px + 45, pill_y + 8, val2)
 
@@ -305,7 +327,7 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
     box_h = 126
 
     c.setFillColor(HexColor('#050f26'))
-    c.setStrokeColor(HexColor('#00A3FF'))
+    c.setStrokeColor(HexColor('#00DFFF'))
     c.setLineWidth(1)
     c.roundRect(box_x, box_y, box_w, box_h, 10, fill=1, stroke=1)
 
@@ -326,7 +348,7 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
         c.setFillColor(HexColor('#7dd3fc'))
         c.setFont('Helvetica', 8)
         c.drawString(box_x + 14, dy, lbl)
-        c.setFillColor(HexColor('#00A3FF'))
+        c.setFillColor(HexColor('#00DFFF'))
         c.drawString(box_x + 95, dy, col_sign)
         c.setFillColor(HexColor('#ffffff'))
         c.setFont('Helvetica-Bold', 8)
@@ -334,7 +356,7 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
         dy -= 19
 
     # Vertical Column Divider
-    c.setStrokeColor(HexColor('#00A3FF'))
+    c.setStrokeColor(HexColor('#00DFFF'))
     c.setLineWidth(0.8)
     c.line(box_x + 400, box_y + 12, box_x + 400, box_y + box_h - 12)
 
@@ -367,7 +389,7 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
     c.setFillColor(HexColor('#E0F2FF'))
     c.setFont('Times-Italic', 16)
     c.drawString(44, sig_y + 20, "Deepak Sharma")
-    c.setStrokeColor(HexColor('#00A3FF'))
+    c.setStrokeColor(HexColor('#00DFFF'))
     c.setLineWidth(1)
     c.line(44, sig_y + 14, 180, sig_y + 14)
 
@@ -385,7 +407,7 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
     slog_x = 270
     slog_box_y = sig_y - 16
     c.setFillColor(HexColor('#061433'))
-    c.setStrokeColor(HexColor('#00A3FF'))
+    c.setStrokeColor(HexColor('#00DFFF'))
     c.setLineWidth(1)
     c.roundRect(slog_x, slog_box_y, slog_w, slog_h, 6, fill=1, stroke=1)
 
@@ -400,7 +422,7 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
     c.setFillColor(HexColor('#E0F2FF'))
     c.setFont('Times-Italic', 16)
     c.drawRightString(760, sig_y + 20, "Karan Manikandan")
-    c.setStrokeColor(HexColor('#00A3FF'))
+    c.setStrokeColor(HexColor('#00DFFF'))
     c.setLineWidth(1)
     c.line(624, sig_y + 14, 760, sig_y + 14)
 
@@ -425,14 +447,16 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
     c.setFillColor(HexColor('#00E5FF'))
     c.setFont('Helvetica-Bold', 9.5)
     c.drawCentredString(stub_cx, height - 38, "REGISTRATION PASS")
-    c.setStrokeColor(HexColor('#00A3FF'))
+    c.setStrokeColor(HexColor('#00DFFF'))
     c.setLineWidth(0.8)
     c.line(800, height - 46, 968, height - 46)
 
     # Scannable High-Contrast QR Code
     try:
+        target_base = resolve_pass_base_url(base_url)
+        qr_url = f"{target_base}/?ref={team_id}"
+        
         qr = qrcode.QRCode(box_size=4, border=1)
-        qr_url = f"{base_url}/?ref={team_id}"
         qr.add_data(qr_url)
         qr.make(fit=True)
         qr_img = qr.make_image(fill_color='black', back_color='white')
@@ -459,7 +483,7 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
     rc_y = height - 296
 
     c.setFillColor(HexColor('#061433'))
-    c.setStrokeColor(HexColor('#00A3FF'))
+    c.setStrokeColor(HexColor('#00DFFF'))
     c.setLineWidth(1)
     c.roundRect(rc_x, rc_y, rc_w, rc_h, 8, fill=1, stroke=1)
 
@@ -475,10 +499,25 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
     c.setFont('Helvetica-Bold', 7)
     c.drawCentredString(stub_cx, rc_y + rc_h - 50, "STATUS")
 
-    # Dynamic Verified or Pending Capsule
-    is_verified = (str(team.get('payment_status', '')).upper() in ('PAID', 'COMPLETED') or 
-                   str(team.get('verification_status', '')).upper() == 'VERIFIED' or 
-                   team.get('is_eligible', False))
+    # Canonical 3-State Status Badge matching business rules:
+    # 1. VERIFIED: Both payment PAID and verification VERIFIED
+    # 2. REVOKED / REJECTED: Either payment or verification REJECTED, or ticket REVOKED
+    # 3. PENDING: Default awaiting verification
+    p_status = str(team.get('payment_status', '')).upper()
+    v_status = str(team.get('verification_status', '')).upper()
+    t_status = str(team.get('ticket_status', '')).upper()
+
+    is_verified = (
+        (p_status in ('PAID', 'COMPLETED') and v_status == 'VERIFIED') or 
+        (t_status == 'CONFIRMED') or
+        bool(team.get('is_eligible', False))
+    )
+    is_rejected = (
+        p_status == 'REJECTED' or
+        v_status == 'REJECTED' or
+        t_status in ('REVOKED', 'REJECTED')
+    )
+
     if is_verified:
         c.setFillColor(HexColor('#022c16'))
         c.setStrokeColor(HexColor('#22c55e'))
@@ -487,6 +526,14 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
         c.setFillColor(HexColor('#4ade80'))
         c.setFont('Helvetica-Bold', 8)
         c.drawCentredString(stub_cx, rc_y + 14, "✓ VERIFIED")
+    elif is_rejected:
+        c.setFillColor(HexColor('#2a080c'))
+        c.setStrokeColor(HexColor('#ef4444'))
+        c.setLineWidth(1)
+        c.roundRect(stub_cx - 48, rc_y + 8, 96, 18, 9, fill=1, stroke=1)
+        c.setFillColor(HexColor('#f87171'))
+        c.setFont('Helvetica-Bold', 8)
+        c.drawCentredString(stub_cx, rc_y + 14, "✕ REVOKED")
     else:
         c.setFillColor(HexColor('#2d1a04'))
         c.setStrokeColor(HexColor('#f59e0b'))
@@ -497,7 +544,7 @@ def generate_pass_pdf(team, members, base_url="http://localhost:8000") -> bytes:
         c.drawCentredString(stub_cx, rc_y + 14, "⏳ PENDING")
 
     # 3 Event Highlight Chips at Bottom
-    c.setStrokeColor(HexColor('#00A3FF'))
+    c.setStrokeColor(HexColor('#00DFFF'))
     c.setLineWidth(0.8)
     c.line(rc_x, rc_y - 12, rc_x + rc_w, rc_y - 12)
 

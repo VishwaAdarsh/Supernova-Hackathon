@@ -6,6 +6,11 @@ from datetime import datetime, timezone
 from email.message import EmailMessage
 from email.utils import formataddr, formatdate
 from pathlib import Path
+import sys
+
+BACKEND_DIR = Path(__file__).resolve().parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
 from pdf_generator import generate_pass_pdf, TRACK_DISPLAY_NAMES
 
@@ -47,7 +52,7 @@ def get_smtp_config():
         port = int(os.environ.get('SMTP_PORT', '587').strip() or 587)
     except ValueError:
         port = 587
-        
+
     username = os.environ.get('SMTP_USERNAME', os.environ.get('SMTP_USER', '')).strip()
     password = os.environ.get('SMTP_PASSWORD', os.environ.get('SMTP_PASS', '')).strip()
     if 'gmail' in host.lower() or len(password.replace(' ', '')) == 16:
@@ -55,7 +60,7 @@ def get_smtp_config():
         password = password.replace(' ', '')
     from_email = os.environ.get('SMTP_FROM_EMAIL', os.environ.get('SMTP_FROM', username or '')).strip()
     from_name = os.environ.get('SMTP_FROM_NAME', 'Arraman Swain (SUPERNOVA 2026)').strip() or 'Arraman Swain (SUPERNOVA 2026)'
-    
+
     use_tls_raw = os.environ.get('SMTP_USE_TLS', 'true').strip().lower()
     use_ssl_raw = os.environ.get('SMTP_USE_SSL', 'false').strip().lower()
     use_tls = use_tls_raw in ('true', '1', 'yes')
@@ -152,7 +157,7 @@ def build_email_template(notification_type, team, members, extra=None, base_url=
     # -------------------------------------------------------------
     if notification_type == 'REGISTRATION_RECEIVED':
         subject = f"SUPERNOVA 2026: Registration Received - {clean_team_title} ({team_id})"
-        
+
         plain_text = f"""SUPERNOVA - Quantum Hack 2026: Registration Received
 Tolani College of Commerce, Mumbai
 =============================================================
@@ -676,7 +681,24 @@ def send_email_notification(notification_type, team, members, extra=None, force_
         try:
             pdf_bytes = generate_pass_pdf(team, members, base_url)
         except Exception as e:
-            print(f"Error generating pass PDF for {team_id}: {e}")
+            err_details = f"Error generating pass PDF for {team_id}: {e}"
+            print(err_details)
+            try:
+                from database import connect
+                with connect() as conn:
+                    conn.execute('''
+                        INSERT INTO email_dispatches (team_id, recipient_email, subject, notification_type, status, error_message)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    ''', (team_id, recipient_email, subject, notification_type, 'FAILED', err_details))
+            except Exception:
+                pass
+            return {
+                'status': 'FAILED',
+                'notification_type': notification_type,
+                'recipient': recipient_email,
+                'error': err_details,
+                'has_pdf': False
+            }
 
     # Build modern EmailMessage with RFC 5322 and RFC 2046 compliant structure
     msg = EmailMessage()
@@ -705,14 +727,66 @@ def send_email_notification(notification_type, team, members, extra=None, force_
             filename=f"SUPERNOVA_PASS_{team_id}.pdf"
         )
 
-    # Email Delivery: HTTP API (Resend / Brevo) or SMTP Transmission
+    # Email Delivery: HTTP API (Brevo / Resend) or SMTP Transmission
     status = 'NOT_CONFIGURED'
     err_msg = None
+    provider_msg_id = None
 
     resend_key = cfg.get('resend_api_key')
     brevo_key = cfg.get('brevo_api_key')
+    email_provider_env = os.environ.get('EMAIL_PROVIDER', '').strip().lower()
 
-    if resend_key:
+    # Prioritize Brevo if configured or requested, as Brevo delivers to all recipient domains
+    use_brevo = bool(brevo_key) and (email_provider_env == 'brevo' or not resend_key or email_provider_env != 'resend')
+
+    if use_brevo:
+        try:
+            import urllib.request
+            import base64
+            import json
+
+            payload = {
+                "sender": {"name": from_name, "email": from_email},
+                "to": [{"email": recipient_email}],
+                "subject": subject,
+                "textContent": text_body,
+                "htmlContent": html_body
+            }
+            if pdf_bytes:
+                payload["attachment"] = [{
+                    "name": f"SUPERNOVA_PASS_{team_id}.pdf",
+                    "content": base64.b64encode(pdf_bytes).decode('ascii')
+                }]
+
+            req = urllib.request.Request(
+                "https://api.brevo.com/v3/smtp/email",
+                data=json.dumps(payload).encode('utf-8'),
+                headers={
+                    "api-key": brevo_key,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                resp_data = json.loads(resp.read().decode('utf-8'))
+                status = 'SENT'
+                provider_msg_id = resp_data.get('messageId')
+                err_msg = f"Delivered via Brevo (messageId: {provider_msg_id})" if provider_msg_id else None
+        except urllib.error.HTTPError as e:
+            status = 'FAILED'
+            try:
+                raw_err = e.read().decode('utf-8')
+                parsed_err = json.loads(raw_err)
+                msg_val = parsed_err.get('message') or parsed_err.get('error') or raw_err
+                err_msg = f"Brevo API error (HTTP {e.code}): {msg_val}"
+            except Exception:
+                err_msg = f"Brevo API error: HTTP Error {e.code}: {e.reason}"
+        except Exception as e:
+            status = 'FAILED'
+            err_msg = f"Brevo API error: {str(e)}"
+
+    elif resend_key:
         try:
             import urllib.request
             import base64
@@ -748,7 +822,8 @@ def send_email_notification(notification_type, team, members, extra=None, force_
             with urllib.request.urlopen(req, timeout=30) as resp:
                 resp_data = json.loads(resp.read().decode('utf-8'))
                 status = 'SENT'
-                err_msg = None
+                provider_msg_id = resp_data.get('id')
+                err_msg = f"Delivered via Resend (id: {provider_msg_id})" if provider_msg_id else None
         except urllib.error.HTTPError as e:
             status = 'FAILED'
             try:
@@ -768,52 +843,6 @@ def send_email_notification(notification_type, team, members, extra=None, force_
         except Exception as e:
             status = 'FAILED'
             err_msg = f"Resend API error: {str(e)}"
-
-    elif brevo_key:
-        try:
-            import urllib.request
-            import base64
-            import json
-
-            payload = {
-                "sender": {"name": from_name, "email": from_email},
-                "to": [{"email": recipient_email}],
-                "subject": subject,
-                "textContent": text_body,
-                "htmlContent": html_body
-            }
-            if pdf_bytes:
-                payload["attachment"] = [{
-                    "name": f"SUPERNOVA_PASS_{team_id}.pdf",
-                    "content": base64.b64encode(pdf_bytes).decode('ascii')
-                }]
-
-            req = urllib.request.Request(
-                "https://api.brevo.com/v3/smtp/email",
-                data=json.dumps(payload).encode('utf-8'),
-                headers={
-                    "api-key": brevo_key,
-                    "Content-Type": "application/json",
-                    "Accept": "application/json"
-                },
-                method="POST"
-            )
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                resp_data = json.loads(resp.read().decode('utf-8'))
-                status = 'SENT'
-                err_msg = None
-        except urllib.error.HTTPError as e:
-            status = 'FAILED'
-            try:
-                raw_err = e.read().decode('utf-8')
-                parsed_err = json.loads(raw_err)
-                msg_val = parsed_err.get('message') or parsed_err.get('error') or raw_err
-                err_msg = f"Brevo API error (HTTP {e.code}): {msg_val}"
-            except Exception:
-                err_msg = f"Brevo API error: HTTP Error {e.code}: {e.reason}"
-        except Exception as e:
-            status = 'FAILED'
-            err_msg = f"Brevo API error: {str(e)}"
 
     elif not cfg['is_configured']:
         err_msg = 'Email environment variables not configured. Dispatch logged locally.'
@@ -877,7 +906,10 @@ def send_email_notification(notification_type, team, members, extra=None, force_
     try:
         with open(DISPATCH_LOG, 'a', encoding='utf-8') as f:
             f.write(f"\n--- DISPATCH {datetime.now(timezone.utc).isoformat()} [{notification_type}] ---\n")
-            f.write(f"To: {recipient_email} | Status: {status} | Ref: {team_id}\n")
+            log_line = f"To: {recipient_email} | Status: {status} | Ref: {team_id}"
+            if provider_msg_id:
+                log_line += f" | Provider Msg ID: {provider_msg_id}"
+            f.write(log_line + "\n")
             if err_msg:
                 f.write(f"Note: {err_msg}\n")
             f.write(text_body)
