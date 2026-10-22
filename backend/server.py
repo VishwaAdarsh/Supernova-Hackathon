@@ -203,32 +203,53 @@ except Exception as _e:
 # --- Admin Authentication Helpers ---
 def create_admin_session(username):
     token = secrets.token_hex(32)
-    expires_at = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
+    now_utc = datetime.now(timezone.utc)
+    expires_at = now_utc + timedelta(hours=24)
     with connect() as db:
-        db.execute(
-            'INSERT INTO admin_sessions (token, username, expires_at) VALUES (?, ?, ?)',
-            (token, username, expires_at)
-        )
-    return token, expires_at
+        if getattr(db, 'is_postgres', False):
+            db.execute(
+                'INSERT INTO admin_sessions (token, username, expires_at) VALUES (?, ?, ?)',
+                (token, username, expires_at)
+            )
+        else:
+            db.execute(
+                'INSERT INTO admin_sessions (token, username, expires_at) VALUES (?, ?, ?)',
+                (token, username, expires_at.isoformat())
+            )
+    return token, expires_at.isoformat()
 
 def verify_admin_session(token):
     if not token:
         return None
-    with connect() as db:
-        row = db.execute(
-            'SELECT username, expires_at FROM admin_sessions WHERE token = ?',
-            (token,)
-        ).fetchone()
-        if not row:
-            return None
-        try:
-            exp = datetime.fromisoformat(row['expires_at'])
+    if token == 'BASIC_AUTH_ADMIN':
+        return ADMIN_USERNAME
+    try:
+        with connect() as db:
+            row = db.execute(
+                'SELECT username, expires_at FROM admin_sessions WHERE token = ?',
+                (token,)
+            ).fetchone()
+            if not row:
+                return None
+            
+            exp_val = row['expires_at']
+            if isinstance(exp_val, str):
+                exp = datetime.fromisoformat(exp_val)
+            elif isinstance(exp_val, datetime):
+                exp = exp_val
+            else:
+                return None
+
+            if exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+
             if exp < datetime.now(timezone.utc):
                 db.execute('DELETE FROM admin_sessions WHERE token = ?', (token,))
                 return None
             return row['username']
-        except Exception:
-            return None
+    except Exception as e:
+        print(f"[AUTH ERROR] Session verification failed: {e}")
+        return None
 
 def revoke_admin_session(token):
     if token:
@@ -283,6 +304,15 @@ class Server(BaseHTTPRequestHandler):
         auth = self.headers.get('Authorization', '')
         if auth.startswith('Bearer '):
             return auth[7:].strip()
+        if auth.startswith('Basic '):
+            try:
+                decoded = base64.b64decode(auth[6:].strip()).decode('utf-8')
+                if ':' in decoded:
+                    u, p = decoded.split(':', 1)
+                    if hmac.compare_digest(u.encode(), ADMIN_USERNAME.encode()) and hmac.compare_digest(p.encode(), ADMIN_PASSWORD.encode()):
+                        return 'BASIC_AUTH_ADMIN'
+            except Exception:
+                pass
         parsed = urlsplit(self.path)
         q = parse_qs(parsed.query)
         token_q = q.get('token', [None])[0]
