@@ -60,7 +60,7 @@ assert status == 401 or status == 404
 print("[PASS] 2. Dedicated /admin serves admin.html and server protects admin API")
 
 # Test 3: Authenticate admin
-status, auth_data = post("/api/admin/login", {"username": "admin", "password": "supernova2026#admin"})
+status, auth_data = post("/api/admin/login", {"username": os.environ.get("ADMIN_USERNAME", "super_nova09"), "password": os.environ.get("ADMIN_PASSWORD", "Supernova@001")})
 assert status == 200 and "token" in auth_data
 admin_token = auth_data["token"]
 admin_headers = {"Authorization": f"Bearer {admin_token}"}

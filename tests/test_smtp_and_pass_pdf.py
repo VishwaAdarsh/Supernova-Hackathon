@@ -47,8 +47,8 @@ def main():
     # 1. Admin login
     print("\n[1] Testing Admin Login...")
     status, res = request_json(f"{BASE_URL}/api/admin/login", 'POST', {
-        'username': 'admin',
-        'password': 'supernova2026#admin'
+        'username': os.environ.get('ADMIN_USERNAME', 'super_nova09'),
+        'password': os.environ.get('ADMIN_PASSWORD', 'Supernova@001')
     })
     assert status == 200, f"Admin login failed: {status} {res}"
     admin_token = res['token']

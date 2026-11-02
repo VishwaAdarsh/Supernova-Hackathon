@@ -97,7 +97,7 @@
         <div class="space-y-1">
           <label class="block font-mono text-xs uppercase text-gray-300" for="usernameInput">OPERATOR USERNAME</label>
           <div class="relative">
-            <input type="text" id="usernameInput" value="admin" required autocomplete="username" class="w-full bg-[#09070A] border border-[#153EBD] px-3 py-2 rounded text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#2563FF]">
+            <input type="text" id="usernameInput" value="" placeholder="Enter operator username" required autocomplete="username" class="w-full bg-[#09070A] border border-[#153EBD] px-3 py-2 rounded text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#2563FF]">
             <span class="material-symbols-outlined absolute right-3 top-2.5 text-gray-500 text-sm">badge</span>
           </div>
         </div>
@@ -105,7 +105,7 @@
         <div class="space-y-1">
           <label class="block font-mono text-xs uppercase text-gray-300" for="passwordInput">SECURITY KEY / PASSWORD</label>
           <div class="relative">
-            <input type="password" id="passwordInput" value="supernova2026#admin" required autocomplete="current-password" class="w-full bg-[#09070A] border border-[#153EBD] px-3 py-2 rounded text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#2563FF]">
+            <input type="password" id="passwordInput" value="" placeholder="Enter security key / password" required autocomplete="current-password" class="w-full bg-[#09070A] border border-[#153EBD] px-3 py-2 rounded text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#2563FF]">
             <span class="material-symbols-outlined absolute right-3 top-2.5 text-gray-500 text-sm">key</span>
           </div>
         </div>
@@ -554,7 +554,10 @@
       return API_BASE ? `${API_BASE}${cleanPath}` : cleanPath;
     }
 
-    let adminToken = localStorage.getItem('sn26_admin_token') || null;
+    // Wipe any legacy persistent local storage tokens to enforce manual login on new sessions
+    localStorage.removeItem('sn26_admin_token');
+
+    let adminToken = sessionStorage.getItem('sn26_admin_token') || null;
     let allRegistrations = [];
     let currentActiveTeamId = null;
 
@@ -597,7 +600,8 @@
         const data = await res.json();
         if (res.ok && data.token) {
           adminToken = data.token;
-          localStorage.setItem('sn26_admin_token', adminToken);
+          sessionStorage.setItem('sn26_admin_token', adminToken);
+          localStorage.removeItem('sn26_admin_token');
           document.getElementById('headerUserLabel').innerText = data.username || user;
           showDashboard();
         } else {
@@ -618,6 +622,7 @@
         }).catch(() => {});
       }
       adminToken = null;
+      sessionStorage.removeItem('sn26_admin_token');
       localStorage.removeItem('sn26_admin_token');
       showLogin();
       if (reason) {

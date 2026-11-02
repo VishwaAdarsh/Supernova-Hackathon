@@ -3,6 +3,8 @@
 
 CREATE TABLE admin_actions (id INTEGER PRIMARY KEY AUTOINCREMENT, team_id TEXT NOT NULL, admin_user TEXT NOT NULL, action TEXT NOT NULL, previous_status TEXT, new_status TEXT, notes TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
 
+CREATE TABLE admin_users (username TEXT PRIMARY KEY, password_hash TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP);
+
 CREATE TABLE admin_sessions (token TEXT PRIMARY KEY, username TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
 
 CREATE TABLE email_dispatches (id INTEGER PRIMARY KEY AUTOINCREMENT, team_id TEXT NOT NULL, recipient_email TEXT NOT NULL, subject TEXT NOT NULL, status TEXT NOT NULL, error_message TEXT, sent_at TEXT DEFAULT CURRENT_TIMESTAMP, notification_type TEXT DEFAULT 'FINAL_CONFIRMATION');

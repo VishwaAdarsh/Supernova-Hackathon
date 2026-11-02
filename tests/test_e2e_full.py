@@ -112,8 +112,8 @@ def main():
 
     # 5. Admin Flow
     print("\n[5] Testing Admin Authentication & Review Workflow...")
-    admin_user = os.environ.get('ADMIN_USERNAME', 'admin')
-    admin_pass = os.environ.get('ADMIN_PASSWORD', 'supernova2026#admin')
+    admin_user = os.environ.get('ADMIN_USERNAME', 'super_nova09')
+    admin_pass = os.environ.get('ADMIN_PASSWORD', 'Supernova@001')
     status, login_res = http_json("/api/admin/login", method="POST", data={"username": admin_user, "password": admin_pass})
     assert status == 200, f"Admin login failed: {login_res}"
     admin_token = login_res['token']
@@ -168,6 +168,7 @@ def main():
         conn.execute("DELETE FROM admin_actions WHERE team_id = ?", (team_id,))
         conn.execute("DELETE FROM email_dispatches WHERE team_id = ?", (team_id,))
         conn.execute("DELETE FROM teams WHERE id = ?", (team_id,))
+        conn.execute("DELETE FROM admin_sessions WHERE token = ?", (admin_token,))
     print("Clean up complete.")
 
     print("\n==========================================")

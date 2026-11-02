@@ -1,6 +1,7 @@
 import base64
 import binascii
 import csv
+import hashlib
 import hmac
 import io
 import json
@@ -67,9 +68,64 @@ TRACK_NAMES = {
     'ai': 'AI / ML System'
 }
 
-# Admin Credentials (configurable via environment variables)
-ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'supernova2026#admin')
+# Admin Credentials & Secure Password Hashing (PBKDF2-HMAC-SHA256)
+DEFAULT_ADMIN_USERNAME = 'super_nova09'
+DEFAULT_ADMIN_PASSWORD_HASH = 'pbkdf2_sha256$260000$4c84faf9f64a509acac4e629b9c7888d$e4340d9e778486a76c2bc56a3f06439786ea7633fa5d439c2ed344dfcf8905e8'
+ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', DEFAULT_ADMIN_USERNAME).strip()
+
+def verify_pbkdf2_hash(password: str, stored_hash: str) -> bool:
+    """Verifies a plaintext password against a stored pbkdf2_sha256 hash string."""
+    try:
+        parts = stored_hash.split('$')
+        if len(parts) == 4 and parts[0] == 'pbkdf2_sha256':
+            iterations = int(parts[1])
+            salt = parts[2]
+            expected_hex = parts[3]
+            derived = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), iterations)
+            return hmac.compare_digest(derived.hex(), expected_hex)
+    except Exception:
+        pass
+    return False
+
+def verify_admin_credentials(username: str, password: str) -> bool:
+    """
+    Verifies administrator credentials against:
+    1. Persistent admin_users table in active database
+    2. Environment variable ADMIN_PASSWORD_HASH / DEFAULT_ADMIN_PASSWORD_HASH
+    3. Explicit ADMIN_PASSWORD env override if supplied
+    
+    Never stores or logs the plaintext password.
+    """
+    if not username or not password:
+        return False
+
+    target_user = ADMIN_USERNAME
+
+    # 1. Check persistent database admin_users record
+    try:
+        with connect() as db:
+            row = db.execute("SELECT username, password_hash FROM admin_users WHERE username = ?", (username,)).fetchone()
+            if row and row['password_hash']:
+                if verify_pbkdf2_hash(password, row['password_hash']):
+                    return True
+    except Exception:
+        pass
+
+    # 2. Check username match with target_user
+    if not hmac.compare_digest(username.encode('utf-8'), target_user.encode('utf-8')):
+        return False
+
+    # 3. Check configured or default password hash
+    configured_hash = os.environ.get('ADMIN_PASSWORD_HASH', DEFAULT_ADMIN_PASSWORD_HASH).strip()
+    if verify_pbkdf2_hash(password, configured_hash):
+        return True
+
+    # 4. Fallback check if ADMIN_PASSWORD environment variable was explicitly configured
+    env_password = os.environ.get('ADMIN_PASSWORD')
+    if env_password and hmac.compare_digest(password.encode('utf-8'), env_password.strip().encode('utf-8')):
+        return True
+
+    return False
 
 # Confirmed Event Registration Fee
 CONFIRMED_FEE_AMOUNT = int(os.environ.get('EVENT_FEE_AMOUNT', 300))
@@ -326,7 +382,7 @@ class Server(BaseHTTPRequestHandler):
                 decoded = base64.b64decode(auth[6:].strip()).decode('utf-8')
                 if ':' in decoded:
                     u, p = decoded.split(':', 1)
-                    if hmac.compare_digest(u.encode(), ADMIN_USERNAME.encode()) and hmac.compare_digest(p.encode(), ADMIN_PASSWORD.encode()):
+                    if verify_admin_credentials(u, p):
                         return 'BASIC_AUTH_ADMIN'
             except Exception:
                 pass
@@ -1323,10 +1379,7 @@ class Server(BaseHTTPRequestHandler):
                 username = str(d.get('username', '')).strip()
                 password = str(d.get('password', '')).strip()
 
-                valid_user = hmac.compare_digest(username.encode(), ADMIN_USERNAME.encode())
-                valid_pass = hmac.compare_digest(password.encode(), ADMIN_PASSWORD.encode())
-
-                if not (valid_user and valid_pass):
+                if not verify_admin_credentials(username, password):
                     return self.send_json(401, {'error': 'Invalid administrator credentials.'})
 
                 token, expires_at = create_admin_session(username)
@@ -1676,7 +1729,7 @@ def run_server():
 
     httpd = ThreadingHTTPServer(server_address, Server)
     print(f'Server running on http://127.0.0.1:{port} (host: {host})')
-    print(f'Admin Account: {ADMIN_USERNAME} | Password: {ADMIN_PASSWORD}')
+    print(f'Admin Account: {ADMIN_USERNAME} (PBKDF2-SHA256 Protected)')
     print('Press Ctrl+C to stop.')
     try:
         httpd.serve_forever()

@@ -623,6 +623,20 @@ def init_and_migrate_db():
                 created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
             ''')
+            db.execute('''
+            CREATE TABLE IF NOT EXISTS admin_users (
+                username TEXT PRIMARY KEY,
+                password_hash TEXT NOT NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            ''')
+            db.execute('''
+            INSERT INTO admin_users (username, password_hash)
+            VALUES (%s, %s)
+            ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash;
+            ''', ('super_nova09', 'pbkdf2_sha256$260000$4c84faf9f64a509acac4e629b9c7888d$e4340d9e778486a76c2bc56a3f06439786ea7633fa5d439c2ed344dfcf8905e8'))
+            db.execute("DELETE FROM admin_users WHERE username = 'admin';")
             db.execute('CREATE INDEX IF NOT EXISTS idx_teams_track ON teams(track);')
             db.execute('CREATE INDEX IF NOT EXISTS idx_members_team_id ON members(team_id);')
             db.execute('CREATE INDEX IF NOT EXISTS idx_admin_actions_team_id ON admin_actions(team_id);')
@@ -702,6 +716,15 @@ def init_and_migrate_db():
             expires_at TEXT NOT NULL,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE TABLE IF NOT EXISTS admin_users (
+            username TEXT PRIMARY KEY,
+            password_hash TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        INSERT OR REPLACE INTO admin_users (username, password_hash)
+        VALUES ('super_nova09', 'pbkdf2_sha256$260000$4c84faf9f64a509acac4e629b9c7888d$e4340d9e778486a76c2bc56a3f06439786ea7633fa5d439c2ed344dfcf8905e8');
+        DELETE FROM admin_users WHERE username = 'admin';
         CREATE INDEX IF NOT EXISTS idx_teams_track ON teams(track);
         CREATE INDEX IF NOT EXISTS idx_members_team_id ON members(team_id);
         CREATE INDEX IF NOT EXISTS idx_admin_actions_team_id ON admin_actions(team_id);
