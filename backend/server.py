@@ -141,6 +141,23 @@ def get_organizer_qr_path():
     if qr_files:
         qr_files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
         return qr_files[0]
+
+    # Hydrate from persistent system_config in database if present (e.g. after Render restart)
+    try:
+        with connect() as db:
+            row = db.execute("SELECT value FROM system_config WHERE key = 'organizer_qr_b64'").fetchone()
+            if row and row[0]:
+                ext_row = db.execute("SELECT value FROM system_config WHERE key = 'organizer_qr_ext'").fetchone()
+                ext = (ext_row[0] if ext_row and ext_row[0] else '.jpg').strip()
+                if not ext.startswith('.'):
+                    ext = '.' + ext
+                raw_bytes = base64.b64decode(row[0])
+                target_file = QR_DIR / f"organizer_qr{ext}"
+                target_file.write_bytes(raw_bytes)
+                return target_file
+    except Exception as e:
+        print(f"[QR SYNC WARNING] Failed to load QR from system_config: {e}")
+
     # Fallback to assets
     for p_asset in [ROOT / 'assets' / 'organizer-qr.jpg', ROOT / 'assets' / 'organizer-qr.png', ROOT / 'assets' / 'organizer-qr.webp']:
         if p_asset.is_file() and p_asset.stat().st_size > 0:
@@ -313,11 +330,14 @@ def revoke_admin_session(token):
             db.execute('DELETE FROM admin_sessions WHERE token = ?', (token,))
 
 def log_admin_action(team_id, admin_user, action, previous_status, new_status, notes=''):
-    with connect() as db:
-        db.execute('''
-            INSERT INTO admin_actions (team_id, admin_user, action, previous_status, new_status, notes)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (team_id, admin_user, action, previous_status, new_status, notes))
+    try:
+        with connect() as db:
+            db.execute('''
+                INSERT INTO admin_actions (team_id, admin_user, action, previous_status, new_status, notes)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (team_id, admin_user, action, previous_status, new_status, notes))
+    except Exception as e:
+        print(f"[ADMIN_ACTION WARNING] Could not record action '{action}' for '{team_id}': {e}")
 
 # --- Email Notification Service Delegation ---
 def send_confirmation_email(team, members, force_resend=False, base_url=None):
@@ -1436,8 +1456,37 @@ class Server(BaseHTTPRequestHandler):
                     (ROOT / 'assets' / f"organizer-qr{ext}").write_bytes(raw_bytes)
                     if ext != '.jpg':
                         (ROOT / 'assets' / 'organizer-qr.jpg').write_bytes(raw_bytes)
+                    (ROOT / 'frontend' / 'assets' / f"organizer-qr{ext}").write_bytes(raw_bytes)
+                    if ext != '.jpg':
+                        (ROOT / 'frontend' / 'assets' / 'organizer-qr.jpg').write_bytes(raw_bytes)
                 except Exception:
                     pass
+
+                # Store persistently in system_config so it survives Render redeployments
+                try:
+                    with connect() as db:
+                        if is_postgres():
+                            db.execute('''
+                                INSERT INTO system_config (key, value, updated_at)
+                                VALUES ('organizer_qr_b64', %s, CURRENT_TIMESTAMP)
+                                ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP;
+                            ''', (img_data_str,))
+                            db.execute('''
+                                INSERT INTO system_config (key, value, updated_at)
+                                VALUES ('organizer_qr_ext', %s, CURRENT_TIMESTAMP)
+                                ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP;
+                            ''', (ext,))
+                            db.execute('''
+                                INSERT INTO system_config (key, value, updated_at)
+                                VALUES ('organizer_qr_mime', %s, CURRENT_TIMESTAMP)
+                                ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP;
+                            ''', (mime_type,))
+                        else:
+                            db.execute("INSERT OR REPLACE INTO system_config (key, value) VALUES ('organizer_qr_b64', ?)", (img_data_str,))
+                            db.execute("INSERT OR REPLACE INTO system_config (key, value) VALUES ('organizer_qr_ext', ?)", (ext,))
+                            db.execute("INSERT OR REPLACE INTO system_config (key, value) VALUES ('organizer_qr_mime', ?)", (mime_type,))
+                except Exception as db_err:
+                    print(f"[QR DB PERSIST WARNING] Failed to persist QR to system_config: {db_err}")
 
                 log_admin_action('SYSTEM', admin_user, 'UPDATE_ORGANIZER_QR', 'ACTIVE', 'UPDATED', f"Type: {mime_type}")
 

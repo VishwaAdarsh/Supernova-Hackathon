@@ -1,7 +1,9 @@
 -- SUPERNOVA 2026 SQLite Database Schema
 -- Auto-exported
 
-CREATE TABLE admin_actions (id INTEGER PRIMARY KEY AUTOINCREMENT, team_id TEXT NOT NULL, admin_user TEXT NOT NULL, action TEXT NOT NULL, previous_status TEXT, new_status TEXT, notes TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE admin_actions (id INTEGER PRIMARY KEY AUTOINCREMENT, team_id TEXT, admin_user TEXT NOT NULL, action TEXT NOT NULL, previous_status TEXT, new_status TEXT, notes TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+
+CREATE TABLE system_config (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT DEFAULT CURRENT_TIMESTAMP);
 
 CREATE TABLE admin_users (username TEXT PRIMARY KEY, password_hash TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP);
 
