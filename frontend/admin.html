@@ -554,6 +554,17 @@
       return API_BASE ? `${API_BASE}${cleanPath}` : cleanPath;
     }
 
+    // Security: HTML entity encoder to prevent Stored XSS
+    function escapeHtml(val) {
+      if (val === null || val === undefined) return '';
+      return String(val)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
     // Wipe any legacy persistent local storage tokens to enforce manual login on new sessions
     localStorage.removeItem('sn26_admin_token');
 
@@ -818,12 +829,12 @@
 
         return `
           <tr class="hover:bg-[#231118]/60 transition-colors border-b border-[#153EBD]/30">
-            <td class="p-3 pl-4 font-mono font-bold text-[#2563FF] whitespace-nowrap">${t.id}</td>
+            <td class="p-3 pl-4 font-mono font-bold text-[#2563FF] whitespace-nowrap">${escapeHtml(t.id)}</td>
             <td class="p-3">
-              <div class="font-bold text-white">${t.leader_name}</div>
-              <div class="text-[10px] text-gray-400 truncate max-w-xs">${t.college || t.email || ''}</div>
+              <div class="font-bold text-white">${escapeHtml(t.leader_name)}</div>
+              <div class="text-[10px] text-gray-400 truncate max-w-xs">${escapeHtml(t.college || t.email || '')}</div>
             </td>
-            <td class="p-3 text-gray-300 whitespace-nowrap">${t.track_label || t.track}</td>
+            <td class="p-3 text-gray-300 whitespace-nowrap">${escapeHtml(t.track_label || t.track)}</td>
             <td class="p-3 text-gray-300 whitespace-nowrap">${t.team_size === 2 ? 'Duo (2)' : 'Trio (3)'}</td>
             <td class="p-3">${payBadge}</td>
             <td class="p-3">${statusBadge}</td>
@@ -831,11 +842,11 @@
             <td class="p-3 pr-4 text-right whitespace-nowrap">
               <div class="flex items-center justify-end gap-1.5">
                 ${t.has_proof && t.proof_url ? `
-                  <button onclick="openProofLightbox('${t.proof_url}', 'PAYMENT PROOF // ${t.id}', '${t.id}')" title="Inspect Payment Screenshot" class="p-1 rounded bg-[#030a1c] hover:bg-[#153EBD] text-[#00E5FF] hover:text-white border border-[#00A3FF]/50 transition-colors flex items-center justify-center">
+                  <button onclick="openProofLightbox('${encodeURI(t.proof_url)}', 'PAYMENT PROOF // ${escapeHtml(t.id)}', '${escapeHtml(t.id)}')" title="Inspect Payment Screenshot" class="p-1 rounded bg-[#030a1c] hover:bg-[#153EBD] text-[#00E5FF] hover:text-white border border-[#00A3FF]/50 transition-colors flex items-center justify-center">
                     <span class="material-symbols-outlined text-sm">receipt_long</span>
                   </button>
                 ` : ''}
-                <button onclick="openInspectionDrawer('${t.id}')" class="px-2.5 py-1 rounded bg-[#09070A] hover:bg-[#2563FF] hover:text-white border border-[#153EBD] text-xs font-mono transition-colors flex items-center gap-1">
+                <button onclick="openInspectionDrawer('${escapeHtml(t.id)}')" class="px-2.5 py-1 rounded bg-[#09070A] hover:bg-[#2563FF] hover:text-white border border-[#153EBD] text-xs font-mono transition-colors flex items-center gap-1">
                   <span class="material-symbols-outlined text-xs">visibility</span>
                   <span>Inspect</span>
                 </button>
@@ -1126,32 +1137,32 @@
           btnApprove.className = "px-3.5 py-1.5 rounded bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-500/60 text-xs font-mono uppercase flex items-center gap-1.5 transition-colors font-bold shadow-[0_0_15px_rgba(34,197,94,0.3)]";
         }
 
-        // Render Roster Members
+        // Render Roster Members (HTML Entity Escaped)
         const memList = document.getElementById('drawerMembersList');
         memList.innerHTML = members.map(m => `
           <div class="p-2 rounded bg-[#170B10] border border-[#153EBD]/60 flex items-center justify-between">
             <div>
-              <strong class="text-white">${m.name}</strong>
-              <span class="text-gray-400 text-[10px] ml-1">(${m.role || 'Member'})</span>
-              <span class="text-gray-400 text-[10px] ml-2 font-mono">${m.email}</span>
+              <strong class="text-white">${escapeHtml(m.name)}</strong>
+              <span class="text-gray-400 text-[10px] ml-1">(${escapeHtml(m.role || 'Member')})</span>
+              <span class="text-gray-400 text-[10px] ml-2 font-mono">${escapeHtml(m.email)}</span>
             </div>
-            <span class="text-[#2563FF] text-[10px]">${m.college || ''}</span>
+            <span class="text-[#2563FF] text-[10px]">${escapeHtml(m.college || '')}</span>
           </div>
         `).join('');
 
-        // Render Audit Logs
+        // Render Audit Logs (HTML Entity Escaped)
         const auditBox = document.getElementById('drawerAuditLogs');
         if (actions.length === 0 && dispatches.length === 0) {
           auditBox.innerHTML = '<div class="text-gray-500">No actions recorded yet.</div>';
         } else {
           const actionItems = actions.map(a => `
-            <div>• [${a.created_at || 'Just now'}] <strong>${a.action}</strong> by ${a.admin_user || 'admin'}: ${a.notes || ''}</div>
+            <div>• [${escapeHtml(a.created_at || 'Just now')}] <strong>${escapeHtml(a.action)}</strong> by ${escapeHtml(a.admin_user || 'admin')}: ${escapeHtml(a.notes || '')}</div>
           `);
           const dispatchItems = dispatches.map(d => {
-            const errStr = d.error_message ? ` (Note: ${d.error_message})` : '';
-            const typeStr = d.notification_type || 'NOTIFICATION';
+            const errStr = d.error_message ? ` (Note: ${escapeHtml(d.error_message)})` : '';
+            const typeStr = escapeHtml(d.notification_type || 'NOTIFICATION');
             const colorClass = d.status === 'SENT' ? 'text-emerald-400' : (d.status === 'FAILED' ? 'text-red-400' : 'text-amber-400');
-            return `<div class="${colorClass}">• [${d.sent_at || ''}] <strong>[${typeStr}]</strong> Status: ${d.status} → ${d.recipient_email}${errStr}</div>`;
+            return `<div class="${colorClass}">• [${escapeHtml(d.sent_at || '')}] <strong>[${typeStr}]</strong> Status: ${escapeHtml(d.status)} → ${escapeHtml(d.recipient_email)}${errStr}</div>`;
           });
           auditBox.innerHTML = actionItems.concat(dispatchItems).join('');
         }

@@ -11,6 +11,8 @@ import secrets
 import smtplib
 import sqlite3
 import sys
+import threading
+import time
 from pathlib import Path
 
 BACKEND_DIR = Path(__file__).resolve().parent
@@ -126,6 +128,44 @@ def verify_admin_credentials(username: str, password: str) -> bool:
         return True
 
     return False
+
+# --- Admin Login Rate Limiting & Brute-Force Defense ---
+LOGIN_ATTEMPTS = {}  # ip -> list of float timestamps
+LOGIN_LOCK = threading.Lock()
+MAX_FAILED_LOGIN_ATTEMPTS = 5
+LOGIN_LOCKOUT_WINDOW = 15 * 60  # 15 minutes window
+
+def get_client_ip(headers, client_address):
+    """Extracts client IP prioritizing reverse-proxy headers (X-Forwarded-For)."""
+    if headers:
+        xff = headers.get('X-Forwarded-For', '')
+        if xff:
+            return xff.split(',')[0].strip()
+    return client_address[0] if client_address else '127.0.0.1'
+
+def check_login_rate_limit(ip: str) -> tuple[bool, int]:
+    """Returns (is_limited, seconds_remaining)."""
+    now = time.time()
+    with LOGIN_LOCK:
+        attempts = LOGIN_ATTEMPTS.get(ip, [])
+        valid = [t for t in attempts if now - t < LOGIN_LOCKOUT_WINDOW]
+        LOGIN_ATTEMPTS[ip] = valid
+        if len(valid) >= MAX_FAILED_LOGIN_ATTEMPTS:
+            oldest = valid[0]
+            remaining = int(LOGIN_LOCKOUT_WINDOW - (now - oldest))
+            return True, max(1, remaining)
+        return False, 0
+
+def record_failed_login(ip: str):
+    now = time.time()
+    with LOGIN_LOCK:
+        attempts = LOGIN_ATTEMPTS.get(ip, [])
+        attempts.append(now)
+        LOGIN_ATTEMPTS[ip] = [t for t in attempts if now - t < LOGIN_LOCKOUT_WINDOW]
+
+def clear_failed_logins(ip: str):
+    with LOGIN_LOCK:
+        LOGIN_ATTEMPTS.pop(ip, None)
 
 # Confirmed Event Registration Fee
 CONFIRMED_FEE_AMOUNT = int(os.environ.get('EVENT_FEE_AMOUNT', 300))
@@ -1391,17 +1431,33 @@ class Server(BaseHTTPRequestHandler):
                 return self.send_json(500, {'error': f'Server error processing proof upload: {str(e)}'})
 
         # ---------------------------------------------------------
-        # API: Admin Login
+        # API: Admin Login (Rate-Limited with Brute-Force Defense)
         # ---------------------------------------------------------
         if path == '/api/admin/login':
+            client_ip = get_client_ip(self.headers, self.client_address)
+            is_limited, wait_sec = check_login_rate_limit(client_ip)
+            if is_limited:
+                mins = (wait_sec + 59) // 60
+                self.send_response(429)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Retry-After', str(wait_sec))
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    'error': f'Too many failed login attempts. Security lockout active for {mins} minute(s).'
+                }).encode('utf-8'))
+                return
+
             try:
                 d = self.read_json_body()
                 username = str(d.get('username', '')).strip()
                 password = str(d.get('password', '')).strip()
 
                 if not verify_admin_credentials(username, password):
+                    record_failed_login(client_ip)
                     return self.send_json(401, {'error': 'Invalid administrator credentials.'})
 
+                clear_failed_logins(client_ip)
                 token, expires_at = create_admin_session(username)
                 return self.send_json(200, {
                     'token': token,

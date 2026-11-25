@@ -665,6 +665,12 @@ def init_and_migrate_db():
                 db.execute("ALTER TABLE admin_actions ALTER COLUMN team_id DROP NOT NULL;")
             except Exception:
                 pass
+            # Enforce Row Level Security (RLS) across all public PostgreSQL tables to block unauthorized PostgREST client access
+            for tbl in ('teams', 'members', 'admin_actions', 'email_dispatches', 'admin_sessions', 'admin_users', 'system_config'):
+                try:
+                    db.execute(f"ALTER TABLE {tbl} ENABLE ROW LEVEL SECURITY;")
+                except Exception:
+                    pass
             print("[DATABASE INIT] Authoritative PostgreSQL schema initialized successfully.")
             return
 
