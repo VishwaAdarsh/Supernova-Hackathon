@@ -172,8 +172,8 @@ CONFIRMED_FEE_AMOUNT = int(os.environ.get('EVENT_FEE_AMOUNT', 300))
 CONFIRMED_FEE_LABEL = os.environ.get('EVENT_FEE_LABEL', '₹300 Flat per Team')
 
 # Organizer Official UPI Details
-ORGANIZER_UPI_ID = os.environ.get('ORGANIZER_UPI_ID', 'swainpapa@fam')
-ORGANIZER_UPI_NAME = os.environ.get('ORGANIZER_UPI_NAME', 'ARRAMAN SWAIN')
+ORGANIZER_UPI_ID = os.environ.get('ORGANIZER_UPI_ID', '8104005089@fam')
+ORGANIZER_UPI_NAME = os.environ.get('ORGANIZER_UPI_NAME', 'KARAN MANIKANDAN')
 
 def get_organizer_qr_path():
     """Returns the Path to the configured organizer payment QR image or None."""
